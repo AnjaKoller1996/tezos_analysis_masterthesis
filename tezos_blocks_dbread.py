@@ -94,6 +94,14 @@ def get_avg_reward_per_cycle():
     return avg_reward_per_cycle
 
 
+def get_avg_reward_blocks():
+    avg_reward_blocks = []
+    reward_list_tuple = cur.execute('SELECT reward from blocks').fetchall()
+    for reward in reward_list_tuple:
+        avg_reward_blocks.append(reward[0])
+    return avg_reward_blocks
+
+
 def get_sum_reward_per_cycle():
     reward_cycle = []
     for cycle in cycles:
@@ -107,6 +115,10 @@ def get_sum_reward_per_cycle():
 avg_reward_over_cycles = get_avg_reward_over_cycles()
 avg_reward_over_cycles_list = [avg_reward_over_cycles] * num_cycles
 avg_reward_per_cycle_list = get_avg_reward_per_cycle()
+avg_reward_block_list = get_avg_reward_blocks()
+num_blocks = cur.execute('SELECT COUNT(*) FROM BLOCKS').fetchone()[0]
+average_reward_over_blocks = cur.execute('SELECT AVG(reward) from blocks').fetchone()[0]
+averaged_rewards_perblock = [average_reward_over_blocks] * num_blocks
 
 print('avg reward over cycles', avg_reward_over_cycles)
 print('avg reward per cycle list', avg_reward_per_cycle_list)
@@ -132,6 +144,24 @@ def plot_reward_standarddeviation_all_cycles():
     plt.close()
 
 
+def plot_reward_distribution_blocks():
+    blocks = cur.execute('SELECT COUNT(*) FROM BLOCKS').fetchone()[0]
+    print('blocks', blocks)
+    x1_data = list(range(0, blocks))
+    y1_data = avg_reward_block_list
+    plt.title('Baker reward distribution per block')
+    plt.plot(x1_data, y1_data, label='real rewards')
+    # x2_data = list(range(0,blocks))
+    # y2_data = averaged_rewards_perblock
+    # plt.plot(x2_data, y2_data, label='baseline rewards')
+    plt.xlabel('blocks')
+    plt.ylabel('rewards')
+    # plt.legend()
+    plt.show()
+    plt.savefig('Baker_reward_distribution_blocks.png')
+    plt.close()
+
+
 # Detail view where we look at 5 consecutive cycles (nr 250 to 254)
 def plot_5cycles_reward_baker():
     reward_per_cycle_list_250to254_list = get_reward_over_5cyclesfromx()
@@ -141,7 +171,7 @@ def plot_5cycles_reward_baker():
     y1_data = reward_per_cycle_list_250to254_list
     plt.plot(x1_data, y1_data, label='baseline')
     x2_data = [250, 251, 252, 253, 254]
-    y2_data = reward_per_ycle_baker_list  # real reward data of a specific baker in all the cycles
+    y2_data = reward_per_cycle_baker_list  # real reward data of a specific baker in all the cycles
     plt.plot(x2_data, y2_data, label='Real rewards for baker X')
     plt.legend()
     plt.title('Baker Reward in Cycles 250 to 255 for Baker X compared to baseline')
@@ -151,6 +181,8 @@ def plot_5cycles_reward_baker():
 
 
 plot_reward_standarddeviation_all_cycles()
+
+plot_reward_distribution_blocks()
 # plot_5cycles_reward_baker() # TODO: execute this when done
 avg_reward_over_cycles = cur.execute('SELECT AVG(reward) from cyclerewards WHERE cycle IN (250, 251, 252, '
                                      '253, 254 )').fetchone()[0]
