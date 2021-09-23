@@ -1,22 +1,6 @@
-# import the tezos blocks db and the snapshot db and create a new one
 import sqlite3
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
-# creating file path
-dbfile = '/home/anjakoller/tezos_dataextraction_merged_alltables.db'
-
-# Create a SQL connection to our SQLite database with blocks
-con = sqlite3.connect(dbfile)  # attributes: cycle, baker, fee, reward, deposit, blocks (merged db)
-cur = con.cursor()
-
-
-num_bakers = cur.execute('SELECT COUNT(DISTINCT reward) FROM blocks').fetchone()[0]
-max_cycle = cur.execute('SELECT MAX(cycle) FROM blocks').fetchone()[0]
-num_cycles = max_cycle + 1
-min_cycle = cur.execute('SELECT MIN(cycle) FROM blocks').fetchone()[0]
-cycles = list(range(min_cycle, (max_cycle + 1)))
 
 
 def get_avg_reward_over_cycles():
@@ -28,15 +12,6 @@ def get_reward_over_5cyclesfromx():
     rewards = []
     # TODO: make this more general working with range x...y
     avg_rewards = cur.execute('SELECT reward from cyclerewards WHERE cycle IN (250, 251, 252, 253, 254 )').fetchall()
-    for rew in avg_rewards:
-        rewards.append(rew)
-    return rewards
-
-
-def avg_reward_over_cycles_250to254():
-    rewards = []
-    avg_rewards = cur.execute(
-        'SELECT AVG(reward) from cyclerewards WHERE cycle IN (250, 251, 252, 253, 254 )').fetchall()
     for rew in avg_rewards:
         rewards.append(rew)
     return rewards
@@ -78,44 +53,13 @@ def get_avg_reward_blocks():
     return avg_reward_blocks
 
 
-def get_sum_reward_per_cycle():
-    reward_cycle = []
-    for cycle in cycles:
-        reward_sum = \
-            cur.execute('SELECT SUM(reward) FROM (SELECT * FROM blocks b1, blocks b2 WHERE b1.cycle = b2.cycle '
-                        'AND b1.baker != b2.baker)').fetchone()[0]
-        reward_cycle.append(reward_sum)
-    return reward_cycle
-
-
-def get_giniindex_baker_allcycles():
-    reward_bakercycle_list = []
-    cycles = list(range(0, num_cycles + 1))
-    for cycle in cycles:
-        reward_bakercycle_list.append(get_reward_per_cycle_baker(cycle))
-    return reward_bakercycle_list
-
-
-avg_reward_over_cycles = get_avg_reward_over_cycles()
-avg_reward_over_cycles_list = [avg_reward_over_cycles] * num_cycles
-avg_reward_per_cycle_list = get_avg_reward_per_cycle()
-avg_reward_block_list = get_avg_reward_blocks()
-num_blocks = cur.execute('SELECT COUNT(*) FROM BLOCKS').fetchone()[0]
-average_reward_over_blocks = cur.execute('SELECT AVG(reward) from blocks').fetchone()[0]
-averaged_rewards_perblock = [average_reward_over_blocks] * num_blocks
-cycle_num = 195
-reward_per_cycle_per_baker = get_reward_per_cycle_baker(cycle_num)
-
-print('avg reward over cycles', avg_reward_over_cycles)
-print('avg reward per cycle list', avg_reward_per_cycle_list)
-
-
 # plot the rewards standard deviations for the bakers for all cycles
 def plot_reward_standarddeviation_all_cycles():
+    avg_reward_per_cycle_list = get_avg_reward_per_cycle()
+    avg_reward_over_cycles = get_avg_reward_over_cycles()
+    avg_reward_over_cycles_list = [avg_reward_over_cycles] * num_cycles
     x1_data = cycles  # cycle 1 to 397
-    print(x1_data)
     y1_data = avg_reward_over_cycles_list  # avg rewards ordered by cycle
-    print(y1_data)
     plt.plot(x1_data, y1_data, label='baseline')
     x2_data = cycles
     y2_data = avg_reward_per_cycle_list  # real rewards per cycle (to see how much it is from the avg)
@@ -130,8 +74,10 @@ def plot_reward_standarddeviation_all_cycles():
 
 
 def plot_reward_distribution_blocks():
+    avg_reward_block_list = get_avg_reward_blocks()
+    average_reward_over_blocks = cur.execute('SELECT AVG(reward) from blocks').fetchone()[0]
+    averaged_rewards_perblock = [average_reward_over_blocks] * num_blocks
     blocks = cur.execute('SELECT COUNT(*) FROM BLOCKS').fetchone()[0]
-    print('blocks', blocks)
     x1_data = list(range(0, blocks))
     y1_data = avg_reward_block_list
     plt.title('Baker reward distribution per block')
@@ -150,7 +96,6 @@ def plot_reward_distribution_blocks():
 # Detail view where we look at 5 consecutive cycles (nr 250 to 254)
 def plot_5cycles_reward_baker():
     reward_per_cycle_list_250to254_list = get_reward_over_5cyclesfromx()
-    avg_reward_over_cycles_250to254_list = avg_reward_over_cycles_250to254()
     reward_per_cycle_baker_list = get_reward_per_cycle_baker()
     x1_data = [250, 251, 252, 253, 254]  # the respective cycles we look at
     y1_data = reward_per_cycle_list_250to254_list
@@ -165,28 +110,18 @@ def plot_5cycles_reward_baker():
     plt.close()
 
 
-plot_reward_standarddeviation_all_cycles()
-
-plot_reward_distribution_blocks()
-# plot_5cycles_reward_baker() # TODO: execute this when done
-avg_reward_over_cycles = cur.execute('SELECT AVG(reward) from cyclerewards WHERE cycle IN (250, 251, 252, '
-                                     '253, 254 )').fetchone()[0]
-print('avg reward over the 5 cycles', avg_reward_over_cycles)
-# TODO: possibly try to get median here
-num_bakers_above_baseline = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward > '
-                                        '161938.98').fetchone()[0]
-num_bakers_below_half = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward < '
-                                    '161938.98/2').fetchone()[0]
-num_bakers_below_quarter = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward < '
-                                       '161938.98/4').fetchone()[0]
-num_bakers_above_top = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward > '
-                                   '163000').fetchone()[0]
-
-
 def plot_histogram_5cycles_baker_rewards():
-    x_data = ['below quarter', 'belowhalf', 'above', 'abovetop']
+    avg_reward_over_cycles = cur.execute('SELECT AVG(reward) from cyclerewards WHERE cycle IN (250, 251, 252, '
+                                         '253, 254 )').fetchone()[0]
     num_bakers_above_baseline = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward > '
                                             '161938.98').fetchone()[0]
+    num_bakers_below_half = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward < '
+                                        '161938.98/2').fetchone()[0]
+    num_bakers_below_quarter = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward < '
+                                           '161938.98/4').fetchone()[0]
+    num_bakers_above_top = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward > '
+                                       '163000').fetchone()[0]
+    x_data = ['below quarter', 'belowhalf', 'above', 'abovetop']
     y_data = (num_bakers_below_quarter, num_bakers_below_half, num_bakers_above_baseline, num_bakers_above_top)
     index = np.arange(len(x_data))
     bar_width = 0.9
@@ -199,25 +134,12 @@ def plot_histogram_5cycles_baker_rewards():
     plt.close()
 
 
-plot_histogram_5cycles_baker_rewards()
-
-
 def compute_gini_index_rewards(rewards):
     reward_list = []
     for reward in rewards:
         reward_list.append(reward[0])
     gini_index_rewards = calculate_gini_index(reward_list)
-    print(gini_index_rewards)
     return gini_index_rewards
-
-
-bakers_rewards = cur.execute('SELECT reward from cyclerewards').fetchall()
-gini_index_allbakers = compute_gini_index_rewards(bakers_rewards)  # Gini index over all cycles for all bakers
-print('GINI INDEX each cycle all bakers', gini_index_allbakers)
-
-total_rewards_per_bakers = cur.execute('SELECT total_rewards_earned from accounts').fetchall()
-gini_index_totalrew_per_baker = compute_gini_index_rewards(total_rewards_per_bakers)
-print('GINI INDEX total reward per baker', gini_index_totalrew_per_baker)
 
 
 def compute_gini_all_bakers_per_cycle():
@@ -231,12 +153,8 @@ def compute_gini_all_bakers_per_cycle():
     return baker_per_cycle_gini_indexes
 
 
-gini_indexes_all_bakers_rewards = compute_gini_all_bakers_per_cycle()
-print('length gini indexes', len(gini_indexes_all_bakers_rewards))
-
-
-# Plot gini indexes of rewards of all bakers per cycle
 def plot_gini_indexes_all_bakers_per_cycle():
+    gini_indexes_all_bakers_rewards = compute_gini_all_bakers_per_cycle()
     x_data = list(range(0, num_cycles))
     y_data = gini_indexes_all_bakers_rewards
     plt.plot(x_data, y_data)
@@ -248,16 +166,28 @@ def plot_gini_indexes_all_bakers_per_cycle():
     plt.close()
 
 
-plot_gini_indexes_all_bakers_per_cycle()
+if __name__ == '__main__':
+    dbfile = '/home/anjakoller/tezos_dataextraction_merged_alltables.db'
+    con = sqlite3.connect(dbfile)  # attributes: cycle, baker, fee, reward, deposit, blocks (merged db)
+    cur = con.cursor()
+    num_bakers = cur.execute('SELECT COUNT(DISTINCT reward) FROM blocks').fetchone()[0]
+    max_cycle = cur.execute('SELECT MAX(cycle) FROM blocks').fetchone()[0]
+    num_cycles = max_cycle + 1
+    min_cycle = cur.execute('SELECT MIN(cycle) FROM blocks').fetchone()[0]
+    cycles = list(range(min_cycle, (max_cycle + 1)))
+    num_blocks = cur.execute('SELECT COUNT(*) FROM BLOCKS').fetchone()[0]
+    plot_reward_standarddeviation_all_cycles()
+    plot_reward_distribution_blocks()
+    # plot_5cycles_reward_baker()
+    plot_histogram_5cycles_baker_rewards()
+    total_rewards_per_bakers = cur.execute('SELECT total_rewards_earned from accounts').fetchall()
+    gini_index_totalrew_per_baker = compute_gini_index_rewards(total_rewards_per_bakers)
 
-# close the connection
-cur.close()
+    plot_gini_indexes_all_bakers_per_cycle()
+    cur.close()
 
-
-# if __name__ == '__main__':
-
-# TODO: Make same as above for the bakers also for the delegators & compare bakers and delegators & do it also for staking
-# TODO: calculate gini index for each cycle --> see how it develops over time check the take off point at 200 cycles
+# TODO: Make same as above for the bakers also for the delegators & compare bakers and delegators & do it also for
+#  staking calculate gini index for each cycle --> see how it develops over time check the take off point at 200 cycles
 #  -> check if they see amount of tokens check proposal -> voting and online to check whether proposal/protocol
 #  changed at certain amount of cycles like 200, 150 look at self-delegates vs. bakers and nonself-delegates vs.
 #  bakers calculate gini index for the bakers staking_balance & plot how to select baker as a delegator -> sleect
