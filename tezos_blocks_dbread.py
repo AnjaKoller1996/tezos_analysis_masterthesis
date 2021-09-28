@@ -19,9 +19,10 @@ def get_reward_over_5cyclesfromx():
 
 def get_reward_per_cycle_baker(cycle_num):
     rewards_list = []
-    rewards = cur.execute('SELECT reward FROM blocks where cycle=? GROUP BY cycle,baker', (cycle_num,)).fetchall()
-    for rew in rewards:
-        rewards_list.append(rew)
+    # rewards = cur.execute('SELECT reward FROM blocks where cycle=? GROUP BY cycle,baker', (cycle_num,)).fetchall()
+    rewards = cur.execute('SELECT reward FROM blocks where cycle=? GROUP BY cycle,baker', (cycle_num,)).fetchall()[0]
+    for re in rewards:
+        rewards_list.append(re)
     return rewards_list
 
 
@@ -29,6 +30,7 @@ def calculate_gini_index(wealths):
     """Compute Gini coefficient of array of values"""
     # convert list to numpy array
     wealths = np.asarray(wealths)
+    # print('wealths', wealths)
     diffsum = 0
     for i, xi in enumerate(wealths[:-1], 1):
         diffsum += np.sum(np.abs(xi - wealths[i:]))
@@ -43,6 +45,15 @@ def get_avg_reward_per_cycle():
         avg_reward_per_cycle.append(reward[0])
 
     return avg_reward_per_cycle
+
+
+def get_avg_reward_per_delegates():
+    avg_reward_per_delegate_per_cycle = []
+    reward_list = cur.execute('SELECT reward FROM delegates').fetchall()
+    for reward in reward_list:
+        avg_reward_per_delegate_per_cycle.append(reward[0])
+    print('avg reward per delegate per cycle', avg_reward_per_delegate_per_cycle);
+    return avg_reward_per_delegate_per_cycle
 
 
 def get_avg_reward_blocks():
@@ -142,26 +153,107 @@ def compute_gini_index_rewards(rewards):
     return gini_index_rewards
 
 
+def get_baker_addresses():
+    baker_addresses = cur.execute('SELECT address FROM bakers').fetchall()
+    baker_address_list = []
+    for add in baker_addresses:
+        baker_address_list.append(add[0])
+    return baker_address_list
+
+
 def compute_gini_all_bakers_per_cycle():
-    baker_per_cycle_gini_indexes = []
-    rewards_list = []
+    gini_indexes_list = []
+    rewards = []
+    baker_address_list = get_baker_addresses()
+    for baker in baker_address_list:
+        rew = cur.execute('SELECT reward FROM blocks where baker=? GROUP BY cycle,baker', (baker,)).fetchall()
+        for r in rew:
+            rewards.append(r[0])
+        np.asarray(rewards)
+        gini = calculate_gini_index(rewards)
+        gini_indexes_list.append(gini)
+    return gini_indexes_list
+
+
+def compute_gini_all_delegates_rewards(rewards):
+    gini_indexes_list = []
+    # TODO: get list of delegates addresses and then the corresponsing reward & calculate the gini index list
+    return
+
+
+def get_staking_balance_per_cycle_baker(cycle):
+    staking_list = []
+    stakings = cur.execute('SELECT staking_balance from baker_staking_cycles where cycle=? GROUP BY cycle,baker', (cycle,)).fetchall()
+    print('stakings', stakings)
+    for stake in stakings:
+        staking_list.append(stake)
+    return staking_list
+
+
+def compute_gini_all_bakers_staking_per_cycle():
+    baker_per_cycle_gini_indexes_stakes = []
+    staking_list = []
     cycles = list(range(num_cycles))
     for cycle in cycles:
-        rewards_list.append(get_reward_per_cycle_baker(cycle))
-    for rew in rewards_list:
-        baker_per_cycle_gini_indexes.append(compute_gini_index_rewards(rew))
-    return baker_per_cycle_gini_indexes
+        staking_list.append(get_staking_balance_per_cycle_baker(cycle))
+    for stake in staking_list:
+        baker_per_cycle_gini_indexes_stakes.append(compute_gini_index_rewards(stake))
+    print('gini indexes stakes',baker_per_cycle_gini_indexes_stakes)
+    return baker_per_cycle_gini_indexes_stakes
 
 
 def plot_gini_indexes_all_bakers_per_cycle():
     gini_indexes_all_bakers_rewards = compute_gini_all_bakers_per_cycle()
-    x_data = list(range(0, num_cycles))
+    y_data_length = len(gini_indexes_all_bakers_rewards)
+    # TODO: check that x_data and y_data have equal length
+    x_data = list(range(0, y_data_length))
     y_data = gini_indexes_all_bakers_rewards
     plt.plot(x_data, y_data)
     plt.title('Gini indexes all bakers per cycle')
     plt.xlabel('Cycles')
     plt.ylabel('Gini index')
-    plt.savefig('Gini_indexes_all_bakers_per_cycle')
+    plt.savefig('Gini_indexes_all_bakers_per_cycle.png')
+    plt.show()
+    plt.close()
+
+
+def plot_gini_indexes_all_bakers_staking_balance_per_cycle():
+    gini_indexes_all_bakers_staking = compute_gini_all_bakers_staking_per_cycle()
+    x_data = list(range(0, num_cycles))
+    y_data = gini_indexes_all_bakers_staking
+    plt.plot(x_data, y_data)
+    plt.title('Gini indexes all bakers staking_balance per cycle')
+    plt.xlabel('Cycles')
+    plt.ylabel('Gini index')
+    plt.savefig('Gini_indexes_all_bakers_staking_per_cycle.png')
+    plt.show()
+    plt.close()
+
+
+def plot_gini_indexes_all_delegators_per_cycle():
+    # TODO: get rewards per cycle for all delegators
+    # delegator_rewards = get_avg_reward_per_delegators()
+    x_data = list(range(0, num_cycles))
+    # y_data
+    # plt.plot(x_data, y_data)
+    plt.title('Gini indexes all delegators per cycle')
+    plt.xlabel('Cycles')
+    plt.ylabel('Gini index')
+    plt.savefig('Gini_indexes_all_delegators_per_cycle.png')
+    plt.show()
+    plt.close()
+
+
+def plot_delegates_all_cycles():
+    avg_rewards = get_avg_reward_per_delegates()
+    # compute_gini_all_delegates_rewards(avg_rewards)
+    # print('xdata delegates', x_data)
+    x_data = list(range(0, num_cycles))
+    # y_data
+    plt.title('Gini indexes all delegates per cycles')
+    plt.xlabel('Cycles')
+    plt.ylabel('Gini index')
+    plt.savefig('Gini_indexes_all_delegates_per_cycle.png')
     plt.show()
     plt.close()
 
@@ -183,13 +275,8 @@ if __name__ == '__main__':
     total_rewards_per_bakers = cur.execute('SELECT total_rewards_earned from accounts').fetchall()
     gini_index_totalrew_per_baker = compute_gini_index_rewards(total_rewards_per_bakers)
 
-    plot_gini_indexes_all_bakers_per_cycle()
+    plot_gini_indexes_all_bakers_per_cycle()  # This takes a while, to debug the rest uncomment this
+    # plot_gini_indexes_all_bakers_staking_balance_per_cycle() # TODO: check this still an error there
+    # plot_gini_indexes_all_delegators_per_cycle() # TODO: check and fix this
+    # plot_delegates_all_cycles() # TODO: check this
     cur.close()
-
-# TODO: Make same as above for the bakers also for the delegators & compare bakers and delegators & do it also for
-#  staking calculate gini index for each cycle --> see how it develops over time check the take off point at 200 cycles
-#  -> check if they see amount of tokens check proposal -> voting and online to check whether proposal/protocol
-#  changed at certain amount of cycles like 200, 150 look at self-delegates vs. bakers and nonself-delegates vs.
-#  bakers calculate gini index for the bakers staking_balance & plot how to select baker as a delegator -> sleect
-#  ones that already have a large stake? -> could be problematic similar to rich get richer--> gini index of stakes
-#  gives insight (if this distribution becomes more unequal) called preferential attechment
