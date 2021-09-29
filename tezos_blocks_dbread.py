@@ -19,7 +19,6 @@ def get_reward_over_5cyclesfromx():
 
 def get_reward_per_cycle_baker(cycle_num):
     rewards_list = []
-    # rewards = cur.execute('SELECT reward FROM blocks where cycle=? GROUP BY cycle,baker', (cycle_num,)).fetchall()
     rewards = cur.execute('SELECT reward FROM blocks where cycle=? GROUP BY cycle,baker', (cycle_num,)).fetchall()[0]
     for re in rewards:
         rewards_list.append(re)
@@ -181,31 +180,24 @@ def compute_gini_all_delegates_rewards(rewards):
     return
 
 
-def get_staking_balance_per_cycle_baker(cycle):
-    staking_list = []
-    stakings = cur.execute('SELECT staking_balance from baker_staking_cycles where cycle=? GROUP BY cycle,baker', (cycle,)).fetchall()
-    print('stakings', stakings)
-    for stake in stakings:
-        staking_list.append(stake)
-    return staking_list
-
-
 def compute_gini_all_bakers_staking_per_cycle():
-    baker_per_cycle_gini_indexes_stakes = []
-    staking_list = []
-    cycles = list(range(num_cycles))
-    for cycle in cycles:
-        staking_list.append(get_staking_balance_per_cycle_baker(cycle))
-    for stake in staking_list:
-        baker_per_cycle_gini_indexes_stakes.append(compute_gini_index_rewards(stake))
-    print('gini indexes stakes',baker_per_cycle_gini_indexes_stakes)
-    return baker_per_cycle_gini_indexes_stakes
+    gini_indexes_list = []
+    stakes = []
+    baker_address_list = get_baker_addresses()
+    for baker in baker_address_list:
+        stake = cur.execute('SELECT staking_balance FROM baker_staking_cycles WHERE baker=? GROUP BY cycle, baker', (baker,)).fetchall()
+        for s in stake:
+            stakes.append(s[0])
+        np.asarray(stakes)
+        gini = calculate_gini_index(stakes)
+        gini_indexes_list.append(gini)
+    return gini_indexes_list
 
 
 def plot_gini_indexes_all_bakers_per_cycle():
     gini_indexes_all_bakers_rewards = compute_gini_all_bakers_per_cycle()
     y_data_length = len(gini_indexes_all_bakers_rewards)
-    # TODO: check that x_data and y_data have equal length
+    # ensure that x_data and y_data have same length (can be different due to extracting it at different times)
     x_data = list(range(0, y_data_length))
     y_data = gini_indexes_all_bakers_rewards
     plt.plot(x_data, y_data)
@@ -219,7 +211,8 @@ def plot_gini_indexes_all_bakers_per_cycle():
 
 def plot_gini_indexes_all_bakers_staking_balance_per_cycle():
     gini_indexes_all_bakers_staking = compute_gini_all_bakers_staking_per_cycle()
-    x_data = list(range(0, num_cycles))
+    y_data_length = len(gini_indexes_all_bakers_staking)
+    x_data = list(range(0, y_data_length))
     y_data = gini_indexes_all_bakers_staking
     plt.plot(x_data, y_data)
     plt.title('Gini indexes all bakers staking_balance per cycle')
@@ -275,8 +268,8 @@ if __name__ == '__main__':
     total_rewards_per_bakers = cur.execute('SELECT total_rewards_earned from accounts').fetchall()
     gini_index_totalrew_per_baker = compute_gini_index_rewards(total_rewards_per_bakers)
 
-    plot_gini_indexes_all_bakers_per_cycle()  # This takes a while, to debug the rest uncomment this
-    # plot_gini_indexes_all_bakers_staking_balance_per_cycle() # TODO: check this still an error there
+    # plot_gini_indexes_all_bakers_per_cycle()  # This takes a while, to debug the rest uncomment this
+    plot_gini_indexes_all_bakers_staking_balance_per_cycle()
     # plot_gini_indexes_all_delegators_per_cycle() # TODO: check and fix this
     # plot_delegates_all_cycles() # TODO: check this
     cur.close()
