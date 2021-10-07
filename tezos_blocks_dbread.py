@@ -64,7 +64,7 @@ def plot_reward_standarddeviation_all_cycles():
     plt.plot(x1_data, y1_data, label='baseline')
     # show a line where major protocol upgrades are
     plt.axvline(160, 0, 1, label='Babylon 2.0', color='red')
-    plt.axvline(208, 0, 1, label='Carthago 2.0', color='red')
+    plt.axvline(208, 0, 1, label='Carthage 2.0', color='red')
     plt.axvline(271, 0, 1, label='Delphi', color='red')
     plt.axvline(325, 0, 1, label='Edo', color='red')
     plt.axvline(355, 0, 1, label='Florence', color='red')
@@ -188,11 +188,9 @@ def compute_gini_all_bakers_staking_per_cycle():
 
 
 def compute_num_bakers_per_cycle_list():
-    """ TODO: rerun this as soon as cycles db corrected """
     num_bakers_list = []
     cycles = list(range(0, num_cycles))
     for cycle in cycles:
-        # num_baker = cur.execute('SELECT COUNT(DISTINCT(baker)) from cyclerewards where cycle=?', (cycle,)).fetchall()
         num_baker = cur.execute('SELECT working_bakers from cycles where cycle=?', (cycle,)).fetchall()
         num_bakers_list.append(num_baker[0])
     print(num_bakers_list)
@@ -200,11 +198,10 @@ def compute_num_bakers_per_cycle_list():
 
 
 def compute_num_stakes_per_cycle_list():
-    """TODO: rerun this as soon as cycle db corrected"""
     num_stakes_list = []
     cycles = list(range(0, num_cycles))
     for cycle in cycles:
-        num_baker = cur.execute('SELECT stake_percent from cycles where cycle=?', (cycle,)).fetchall()
+        num_baker = cur.execute('SELECT staking_supply from cycles where cycle=?', (cycle,)).fetchall()
         num_stakes_list.append(num_baker[0])
     print(num_stakes_list)
     return num_stakes_list
@@ -241,7 +238,7 @@ def plot_gini_indexes_all_bakers_staking_balance_per_cycle():
 
 
 def plot_num_bakers_per_cycle():
-    '''TODO: integrate the new cycles table take working_bakers instead of the cyclerewards table'''
+    """TODO: integrate the new cycles table take working_bakers instead of the cyclerewards table"""
     x_data = list(range(0, num_cycles))
     y_data = compute_num_bakers_per_cycle_list()
     plt.plot(x_data, y_data)
@@ -254,7 +251,6 @@ def plot_num_bakers_per_cycle():
 
 
 def plot_total_amount_of_stakes_per_cycle():
-    '''TODO: implement this with the new cycleds table'''
     x_data = list(range(0, num_cycles))
     y_data = compute_num_stakes_per_cycle_list()
     plt.plot(x_data, y_data)
@@ -396,11 +392,13 @@ if __name__ == '__main__':
     # plot_era_stakes_gini(271, 325, 'Delphi')  # cycle 271 to 325 delphi
     # plot_era_stakes_gini(326, 397, 'Edo')  # cycle 325 to today edo
 
-    # plot_num_bakers_per_cycle()  # TODO: 1) run again as soon as new cycledb integrated
-    # plot_total_amount_of_stakes_per_cycle() # TODO: 2) run this as soon as new cycledb integrated
+    plot_num_bakers_per_cycle()
+    plot_total_amount_of_stakes_per_cycle()
     # TODO: look at a snapshot and plot the gini over a section of blocks (i.e. a snapshot)
     cur.close()
 
-# TODO: make a plot on how many bakers/cycle
 # TODO: make a plot with x axis staking of bakers (all bakers on x axis), y axis rewards of the bakers
 # just do it for a few cycles and select randomly (i.e .for higher stake we should have higher reward -> 45 degree)
+
+
+# TODO: get all the cycles and then join the cycles table with the blocks table to get all the bakers that correspond to a cycle
