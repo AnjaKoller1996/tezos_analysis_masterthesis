@@ -177,7 +177,8 @@ def compute_gini_all_bakers_staking_per_cycle():
     stakes = []
     baker_address_list = get_baker_addresses()
     for baker in baker_address_list:
-        stake = cur.execute('SELECT staking_balance FROM baker_staking_cycles WHERE baker=? GROUP BY cycle, baker', (baker,)).fetchall()
+        stake = cur.execute('SELECT staking_balance FROM baker_staking_cycles WHERE baker=? GROUP BY cycle, baker',
+                            (baker,)).fetchall()
         for s in stake:
             stakes.append(s[0])
         np.asarray(stakes)
@@ -188,7 +189,7 @@ def compute_gini_all_bakers_staking_per_cycle():
 
 def compute_num_bakers_per_cycle_list():
     num_bakers_list = []
-    cycles = list(range(0,num_cycles))
+    cycles = list(range(0, num_cycles))
     for cycle in cycles:
         num_baker = cur.execute('SELECT COUNT(*) from bakers where cycle=?', (cycle,).fetchall())
         num_bakers_list.append(num_baker[0])
@@ -238,9 +239,34 @@ def plot_num_bakers_per_cycle():
     plt.close()
 
 
+def compute_gini_all_bakers_per_cycle_era(start, end):
+    gini_indexes_list = []
+    rewards = []
+    baker_address_list = get_baker_addresses()
+    for baker in baker_address_list:
+        rew = cur.execute('SELECT reward FROM blocks where baker=? and cycle >=? and cycle <=? GROUP BY cycle,baker',
+                          (baker, start, end)).fetchall()
+        for r in rew:
+            rewards.append(r[0])
+        np.asarray(rewards)
+        gini = calculate_gini_index(rewards)
+        gini_indexes_list.append(gini)
+    return gini_indexes_list
+
+
 def plot_era_reward_gini(start, end, era_name):
-    """implement this"""
-    return
+    gini_indexes_all_bakers_rewards = compute_gini_all_bakers_per_cycle_era(start, end)
+    y_data = gini_indexes_all_bakers_rewards
+    y_data_length = len(y_data)
+    x_data = list(range(0, y_data_length))
+    plt.ylim(0.0, 0.5)  # make it the same scale as the plots for the stakes
+    plt.plot(x_data, y_data)
+    plt.title('Era ' + era_name + ' Gini indexes all bakers per cycle')
+    plt.xlabel('Cycles')
+    plt.ylabel('Gini index')
+    plt.savefig('Era' + era_name + '_Gini_indexes_all_bakers_per_cycle.png')
+    plt.show()
+    plt.close()
 
 
 def plot_era_baker_reward(start, end, era_name):
@@ -263,10 +289,40 @@ def plot_era_baker_reward(start, end, era_name):
 
 def compute_reward_era_baker_per_cycle(start, end):
     avg_reward_per_cycle = []
-    reward_list_tuple = cur.execute('SELECT reward FROM cyclerewards where cycle>=? AND cycle<=?', (start, end)).fetchall()
+    reward_list_tuple = cur.execute('SELECT reward FROM cyclerewards where cycle>=? AND cycle<=?',
+                                    (start, end)).fetchall()
     for reward in reward_list_tuple:
         avg_reward_per_cycle.append(reward[0])
     return avg_reward_per_cycle
+
+
+def compute_gini_stakes_era(start, end):
+    gini_indexes_list = []
+    stakes = []
+    baker_address_list = get_baker_addresses()
+    for baker in baker_address_list:
+        stake = cur.execute('SELECT staking_balance FROM baker_staking_cycles WHERE baker=? and cycle >=? and cycle '
+                            '<=? GROUP BY cycle, baker', (baker, start, end)).fetchall()
+        for s in stake:
+            stakes.append(s[0])
+        np.asarray(stakes)
+        gini = calculate_gini_index(stakes)
+        gini_indexes_list.append(gini)
+    return gini_indexes_list
+
+
+def plot_era_stakes_gini(start, end, era_name):
+    gini_indexes_all_bakers_staking = compute_gini_stakes_era(start, end)
+    y_data_length = len(gini_indexes_all_bakers_staking)
+    x_data = list(range(0, y_data_length))
+    y_data = gini_indexes_all_bakers_staking
+    plt.plot(x_data, y_data)
+    plt.title('Era ' + era_name + ' Gini indexes stakes')
+    plt.xlabel('Cycles')
+    plt.ylabel('Gini index')
+    plt.savefig('Era' + era_name + 'Gini_indexes_stakes.png')
+    plt.show()
+    plt.close()
 
 
 if __name__ == '__main__':
@@ -289,17 +345,35 @@ if __name__ == '__main__':
     # plot_gini_indexes_all_bakers_per_cycle()  # TODO: This takes a while, to debug the rest uncomment this
     plot_gini_indexes_all_bakers_staking_balance_per_cycle()
 
+    # TODO: make this code here nicer in a loop with 3 arrays (start_cycles, end_cycles and era_names)
+
     # all rewards 5 eras for the upgrades individually
     plot_era_baker_reward(0, 160, 'Athens')  # cycles 0 to 160 athens
-    plot_era_baker_reward(161, 207, 'Babylon')   # cycles 161 to 208 babylon
+    plot_era_baker_reward(161, 207, 'Babylon')  # cycles 161 to 208 babylon
     plot_era_baker_reward(208, 270, 'Carthage')  # cycles 209 to 271 carthage
     plot_era_baker_reward(271, 325, 'Delphi')  # cycle 271 to 325 delphi
-    plot_era_baker_reward(326, 397, 'Edo')   # cycle 325 to today edo
+    plot_era_baker_reward(326, 397, 'Edo')  # cycle 325 to today edo
 
     # all gini indexes 5 eras for upgrades individually
     plot_era_reward_gini(0, 160, 'Athens')  # cycles 0 to 160
+    plot_era_reward_gini(161, 207, 'Babylon')  # cycles 161 to 208 babylon
+    plot_era_reward_gini(208, 270, 'Carthage')  # cycles 209 to 271 carthage
+    plot_era_reward_gini(271, 325, 'Delphi')  # cycle 271 to 325 delphi
+    plot_era_reward_gini(326, 397, 'Edo')  # cycle 325 to today edo
 
-    # plot_num_bakers_per_cycle() # TODO: make this
-    # plot_total_amount_of_stakes_per_cycle() # TODO: make this
+    # all gini indexes staking 5 eras for upgrades individually
+    plot_era_stakes_gini(0, 160, 'Athens')  # cycles 0 to 160 athens stakes
+    plot_era_stakes_gini(161, 207, 'Babylon')  # cycles 161 to 208 babylon
+    plot_era_stakes_gini(208, 270, 'Carthage')  # cycles 209 to 271 carthage
+    plot_era_stakes_gini(271, 325, 'Delphi')  # cycle 271 to 325 delphi
+    plot_era_stakes_gini(326, 397, 'Edo')  # cycle 325 to today edo
+
+    # plot_num_bakers_per_cycle() # TODO: 1) make this
+    # plot_total_amount_of_stakes_per_cycle() # TODO: 2) make this
     # TODO: look at a snapshot and plot the gini over a section of blocks (i.e. a snapshot)
     cur.close()
+
+# TODO: make a plot on how many bakers/cycle
+# TODO: make a plot with x axis staking of bakers (all bakers on x axis), y axis rewards of the bakers
+# just do it for a few cycles and select randomly (i.e .for higher stake we should have higher reward -> 45 degree)
+# TODO: find total amount of bakers, total amount of staking
