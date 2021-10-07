@@ -286,7 +286,7 @@ if __name__ == '__main__':
     total_rewards_per_bakers = cur.execute('SELECT total_rewards_earned from accounts').fetchall()
     gini_index_totalrew_per_baker = compute_gini_index_rewards(total_rewards_per_bakers)
 
-    # plot_gini_indexes_all_bakers_per_cycle()  # This takes a while, to debug the rest uncomment this
+    # plot_gini_indexes_all_bakers_per_cycle()  # TODO: This takes a while, to debug the rest uncomment this
     plot_gini_indexes_all_bakers_staking_balance_per_cycle()
 
     # all rewards 5 eras for the upgrades individually
