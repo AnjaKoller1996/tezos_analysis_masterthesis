@@ -238,14 +238,35 @@ def plot_num_bakers_per_cycle():
     plt.close()
 
 
-def plot_era_reward(start, end):
+def plot_era_reward_gini(start, end, era_name):
+    """implement this"""
+    return
+
+
+def plot_era_baker_reward(start, end, era_name):
     """plot rewards per era, i.e. from cycle start to cycle end"""
+    rewards_all_bakers_athens = compute_reward_era_baker_per_cycle(start, end)
+    y_data_length = len(rewards_all_bakers_athens)
+    # ensure that x_data and y_data have same length (can be different due to extracting it at different times)
+    # x_data = list(range(0, y_data_length))
+    x_data = list(range(start, end + 1))
+    y_data = rewards_all_bakers_athens
+    plt.plot(x_data, y_data)
+    plt.title('Reward all bakers per cycle in Upgrade Era ' + era_name)
+    plt.xlabel('Cycles (Time)')
+    plt.ylabel('Rewards')
+    plt.savefig('Reward_all_bakers_per_cycle_' + era_name + '.png')
+    plt.show()
+    plt.close()
     return
 
 
-def compute_gini_index_era_per_cycle():
-    # TODO:
-    return
+def compute_reward_era_baker_per_cycle(start, end):
+    avg_reward_per_cycle = []
+    reward_list_tuple = cur.execute('SELECT reward FROM cyclerewards where cycle>=? AND cycle<=?', (start, end)).fetchall()
+    for reward in reward_list_tuple:
+        avg_reward_per_cycle.append(reward[0])
+    return avg_reward_per_cycle
 
 
 if __name__ == '__main__':
@@ -265,15 +286,18 @@ if __name__ == '__main__':
     total_rewards_per_bakers = cur.execute('SELECT total_rewards_earned from accounts').fetchall()
     gini_index_totalrew_per_baker = compute_gini_index_rewards(total_rewards_per_bakers)
 
-    # plot_gini_indexes_all_bakers_per_cycle()  # This takes a while, to debug the rest uncomment this # TODO: run this again and test if the ylim works
+    # plot_gini_indexes_all_bakers_per_cycle()  # This takes a while, to debug the rest uncomment this
     plot_gini_indexes_all_bakers_staking_balance_per_cycle()
 
-    # TODO: put this creation here in a loop and save all 5 plots
-    plot_era_reward(0, 160)  # cycles 0 to 160 athens
-    plot_era_reward(161, 208)   # cycles 161 to 208 babylon
-    plot_era_reward(209, 271)  # cycle 209 to 271 carthage
-    plot_era_reward(271, 325)  # cycle 271 to 325 delphi
-    plot_era_reward(325, 404)   # cycle 325 to today edo
+    # all rewards 5 eras for the upgrades individually
+    plot_era_baker_reward(0, 160, 'Athens')  # cycles 0 to 160 athens
+    plot_era_baker_reward(161, 207, 'Babylon')   # cycles 161 to 208 babylon
+    plot_era_baker_reward(208, 270, 'Carthage')  # cycles 209 to 271 carthage
+    plot_era_baker_reward(271, 325, 'Delphi')  # cycle 271 to 325 delphi
+    plot_era_baker_reward(326, 397, 'Edo')   # cycle 325 to today edo
+
+    # all gini indexes 5 eras for upgrades individually
+    plot_era_reward_gini(0, 160, 'Athens')  # cycles 0 to 160
 
     # plot_num_bakers_per_cycle() # TODO: make this
     # plot_total_amount_of_stakes_per_cycle() # TODO: make this
