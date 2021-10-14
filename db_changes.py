@@ -26,4 +26,18 @@
 # insert into cycles select * from db_b.cycles
 
 
-# insert into cycles (cycle, start_time, active_bakers, working_bakers, staking_supply, staking_percent) SELECT (cycle, start_time, active_bakers, working_bakers, staking_supply, staking_percent)  from tezos_cycles_data.cycles;
+# insert into cycles (cycle, start_time, active_bakers, working_bakers, staking_supply, staking_percent) SELECT (
+# cycle, start_time, active_bakers, working_bakers, staking_supply, staking_percent)  from tezos_cycles_data.cycles;
+
+
+# first create blocks id col
+#create table blocks_stake AS SELECT blocks.cycle, blocks.baker, bakers.staking_balance,
+#blocks.id FROM blocks INNER JOIN bakers ON
+#blocks.baker = baker.address;
+
+
+# SELECT ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS MyIndex FROM blocks;
+# insert into blocks(MyIndex) SELECT ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS MyIndex FROM blocks;
+# SELECT ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS MyInd from blocks;
+# insert into blocks.myIndex values (SELECT ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS MyInd from blocks);
+# TODO: above This from the idea but not working

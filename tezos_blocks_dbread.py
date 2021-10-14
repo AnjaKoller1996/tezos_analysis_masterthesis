@@ -8,28 +8,10 @@ def get_avg_reward_over_cycles():
     return cur.execute('SELECT AVG(reward) from cyclerewards').fetchone()[0]
 
 
-def get_reward_over_5cyclesfromx():
-    rewards = []
-    # TODO: make this more general working with range x...y
-    avg_rewards = cur.execute('SELECT reward from cyclerewards WHERE cycle IN (250, 251, 252, 253, 254 )').fetchall()
-    for rew in avg_rewards:
-        rewards.append(rew)
-    return rewards
-
-
-def get_reward_per_cycle_baker(cycle_num):
-    rewards_list = []
-    rewards = cur.execute('SELECT reward FROM blocks where cycle=? GROUP BY cycle,baker', (cycle_num,)).fetchall()[0]
-    for re in rewards:
-        rewards_list.append(re)
-    return rewards_list
-
-
 def calculate_gini_index(wealths):
     """Compute Gini coefficient of array of values"""
     # convert list to numpy array
     wealths = np.asarray(wealths)
-    # print('wealths', wealths)
     diffsum = 0
     for i, xi in enumerate(wealths[:-1], 1):
         diffsum += np.sum(np.abs(xi - wealths[i:]))
@@ -42,7 +24,6 @@ def get_avg_reward_per_cycle():
     reward_list_tuple = cur.execute('SELECT reward FROM cyclerewards').fetchall()
     for reward in reward_list_tuple:
         avg_reward_per_cycle.append(reward[0])
-
     return avg_reward_per_cycle
 
 
@@ -81,43 +62,6 @@ def plot_reward_standarddeviation_all_cycles():
     plt.close()
 
 
-def plot_reward_distribution_blocks():
-    avg_reward_block_list = get_avg_reward_blocks()
-    average_reward_over_blocks = cur.execute('SELECT AVG(reward) from blocks').fetchone()[0]
-    averaged_rewards_perblock = [average_reward_over_blocks] * num_blocks
-    blocks = cur.execute('SELECT COUNT(*) FROM BLOCKS').fetchone()[0]
-    x1_data = list(range(0, blocks))
-    y1_data = avg_reward_block_list
-    plt.title('Baker reward distribution per block')
-    plt.plot(x1_data, y1_data, label='real rewards')
-    # x2_data = list(range(0,blocks))
-    # y2_data = averaged_rewards_perblock
-    # plt.plot(x2_data, y2_data, label='baseline rewards')
-    plt.xlabel('blocks')
-    plt.ylabel('rewards')
-    # plt.legend()
-    plt.show()
-    plt.savefig('Baker_reward_distribution_blocks.png')
-    plt.close()
-
-
-# Detail view where we look at 5 consecutive cycles (nr 250 to 254)
-def plot_5cycles_reward_baker():
-    reward_per_cycle_list_250to254_list = get_reward_over_5cyclesfromx()
-    reward_per_cycle_baker_list = get_reward_per_cycle_baker()
-    x1_data = [250, 251, 252, 253, 254]  # the respective cycles we look at
-    y1_data = reward_per_cycle_list_250to254_list
-    plt.plot(x1_data, y1_data, label='baseline')
-    x2_data = [250, 251, 252, 253, 254]
-    y2_data = reward_per_cycle_baker_list  # real reward data of a specific baker in all the cycles
-    plt.plot(x2_data, y2_data, label='Real rewards for baker X')
-    plt.legend()
-    plt.title('Baker Reward in Cycles 250 to 255 for Baker X compared to baseline')
-    plt.savefig('Baker_reward_cycles_250to255_bakerX.png')
-    plt.show()
-    plt.close()
-
-
 def plot_histogram_5cycles_baker_rewards():
     avg_reward_over_cycles = cur.execute('SELECT AVG(reward) from cyclerewards WHERE cycle IN (250, 251, 252, '
                                          '253, 254 )').fetchone()[0]
@@ -138,6 +82,7 @@ def plot_histogram_5cycles_baker_rewards():
     plt.title('Distribution of reward amounts among bakers')
     plt.xlabel('How much above or below baseline')
     plt.ylabel('Number of Bakers')
+    plt.savefig('Histo_5cycles_baker_rewards.png')
     plt.show()
     plt.close()
 
@@ -172,11 +117,33 @@ def compute_gini_all_bakers_per_cycle():
     return gini_indexes_list
 
 
+def compute_gini_all_bakers_staking_per_block():
+    """TODO: use this and look at it in a block (i.e.not cycle) perspective """
+    # SELECT ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS MyIndex FROM blocks;
+    stakes = []
+    gini_indexes_list = []
+    baker_address_list = get_baker_addresses()
+    for baker in baker_address_list:
+        # TODO: check this again for correctnes --> we have the blocks with info about cycle, baker, reward,
+        #  the cycles which know which baker is associated, and the baker table which has staking info
+        stake = cur.execute('SELECT staking_balance FROM baker_staking_cycles WHERE baker=? GROUP BY cycle, baker',
+                            (baker,)).fetchall()
+        for s in stake:
+            stakes.append(s[0])
+        np.asarray(stakes)
+        gini = calculate_gini_index(stakes)
+        gini_indexes_list.append(gini)
+    return gini_indexes_list
+
+
 def compute_gini_all_bakers_staking_per_cycle():
+    '''TODO: look at snapshot'''
     gini_indexes_list = []
     stakes = []
     baker_address_list = get_baker_addresses()
     for baker in baker_address_list:
+        # TODO: check this again for correctnes --> we have the blocks with info about cycle, baker, reward,
+        #  the cycles which know which baker is associated, and the baker table which has staking info
         stake = cur.execute('SELECT staking_balance FROM baker_staking_cycles WHERE baker=? GROUP BY cycle, baker',
                             (baker,)).fetchall()
         for s in stake:
@@ -295,9 +262,6 @@ def plot_era_reward_gini(start, end, era_name):
 def plot_era_baker_reward(start, end, era_name):
     """plot rewards per era, i.e. from cycle start to cycle end"""
     rewards_all_bakers_athens = compute_reward_era_baker_per_cycle(start, end)
-    y_data_length = len(rewards_all_bakers_athens)
-    # ensure that x_data and y_data have same length (can be different due to extracting it at different times)
-    # x_data = list(range(0, y_data_length))
     x_data = list(range(start, end + 1))
     y_data = rewards_all_bakers_athens
     plt.plot(x_data, y_data)
@@ -359,8 +323,6 @@ if __name__ == '__main__':
     cycles = list(range(min_cycle, (max_cycle + 1)))
     num_blocks = cur.execute('SELECT COUNT(*) FROM BLOCKS').fetchone()[0]
     plot_reward_standarddeviation_all_cycles()
-    plot_reward_distribution_blocks()
-    # plot_5cycles_reward_baker()
     plot_histogram_5cycles_baker_rewards()
     total_rewards_per_bakers = cur.execute('SELECT total_rewards_earned from accounts').fetchall()
     gini_index_totalrew_per_baker = compute_gini_index_rewards(total_rewards_per_bakers)
@@ -368,9 +330,6 @@ if __name__ == '__main__':
     # plot_gini_indexes_all_bakers_per_cycle()  # TODO: This takes a while, to debug the rest uncomment this
     plot_gini_indexes_all_bakers_staking_balance_per_cycle()
 
-    # TODO: make this code here nicer in a loop with 3 arrays (start_cycles, end_cycles and era_names)
-
-    # all rewards 5 eras for the upgrades individually
     plot_era_baker_reward(0, 160, 'Athens')  # cycles 0 to 160 athens
     plot_era_baker_reward(161, 207, 'Babylon')  # cycles 161 to 208 babylon
     plot_era_baker_reward(208, 270, 'Carthage')  # cycles 209 to 271 carthage
@@ -401,4 +360,9 @@ if __name__ == '__main__':
 # just do it for a few cycles and select randomly (i.e .for higher stake we should have higher reward -> 45 degree)
 
 
-# TODO: get all the cycles and then join the cycles table with the blocks table to get all the bakers that correspond to a cycle
+# TODO: take snapshots --> get gini indexes for rolls in snapshots and look at a sequence of snapshots TODO: get get
+#  distribution of rolls for all bakers in a snapshot and calculate gini index for bakers, associate snapshot data
+#  and cycle TODO: get percentage of staking_balance of a baker compared to the staking_supply total that a cycle has
+#   TODO: make a plot with on x axis staking of bakers (all bakers on x axis), y axis rewards of the bakers ,
+#    just do it for a few cycles and select randomly --> theoretically for higher stake -> higher reward (somehow 45
+#    degree slope) (for few cycles only) TODO: total amount of bakers, amount of staking in total
