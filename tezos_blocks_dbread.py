@@ -299,18 +299,16 @@ def compute_gini_stakes_era(start, end):
 
 
 def compute_gini_snapshot_rolls(start, end):
-    """Gini index of snapshot rolls over all baker addresses"""
+    """Gini index of snapshot rolls over all bakers per cycle (start <= cycle <= end)"""
     gini_indexes_list = []
-    rolls = []
-    baker_address_list = get_baker_addresses()  # 393 baker addresses
-    for baker in baker_address_list:
-        roll = cur.execute('SELECT rolls FROM snapshots WHERE address=? and cycle >=? and cycle<=?'
-                           'group by cycle', (baker, start, end)).fetchall()
+    for cycle in range(start, end + 1):
+        rolls = []
+        roll = cur.execute('SELECT rolls FROM snapshots WHERE cycle = %s' % cycle).fetchall()
         for r in roll:
             rolls.append(r[0])
         np.asarray(rolls)
-        gini = calculate_gini_index(rolls)
-        gini_indexes_list.append(gini)
+        gini_cycle = calculate_gini_index(rolls)
+        gini_indexes_list.append(gini_cycle)
     return gini_indexes_list
 
 
@@ -336,11 +334,11 @@ def plot_era_stakes_gini(start, end, era_name):
 
 def plot_snapshots_rolls_gini_index():
     # take only some cycle's snapshots to look at individual sections
-    start = 0
-    end = 397
+    start = 161
+    end = 207
     gini_indexes_all_bakers_snapshot = compute_gini_snapshot_rolls(start, end)
     y_data_length = len(gini_indexes_all_bakers_snapshot)
-    x_data = list(range(0, y_data_length))
+    x_data = list(range(start, end +1))
     y_data = gini_indexes_all_bakers_snapshot
     print('ydata lenght', y_data_length)
     print('y data last entries', y_data[:-5])
@@ -426,3 +424,6 @@ if __name__ == '__main__':
 #   TODO: make a plot with on x axis staking of bakers (all bakers on x axis), y axis rewards of the bakers ,
 #    just do it for a few cycles and select randomly --> theoretically for higher stake -> higher reward (somehow 45
 #    degree slope) (for few cycles only) TODO: total amount of bakers, amount of staking in total
+
+
+# TODO: important -> control all the array that they sum up in the correct way
