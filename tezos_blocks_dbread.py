@@ -298,6 +298,28 @@ def compute_gini_stakes_era(start, end):
     return gini_indexes_list
 
 
+def compute_gini_snapshot_rolls(start, end):
+    """Gini index of snapshot rolls over all baker addresses"""
+    gini_indexes_list = []
+    rolls = []
+    baker_address_list = get_baker_addresses()  # 393 baker addresses
+    for baker in baker_address_list:
+        roll = cur.execute('SELECT rolls FROM snapshots WHERE address=? and cycle >=? and cycle<=?'
+                           'group by cycle', (baker, start, end)).fetchall()
+        for r in roll:
+            rolls.append(r[0])
+        np.asarray(rolls)
+        gini = calculate_gini_index(rolls)
+        gini_indexes_list.append(gini)
+    return gini_indexes_list
+
+
+def compute_gini_snapshot_rewards():
+    """TODO: implement this so that we get gini index list of all baker rewards per snapshot"""
+    gini_indexes_list = []
+    return gini_indexes_list
+
+
 def plot_era_stakes_gini(start, end, era_name):
     gini_indexes_all_bakers_staking = compute_gini_stakes_era(start, end)
     y_data_length = len(gini_indexes_all_bakers_staking)
@@ -308,6 +330,42 @@ def plot_era_stakes_gini(start, end, era_name):
     plt.xlabel('Cycles')
     plt.ylabel('Gini index')
     plt.savefig('Era' + era_name + 'Gini_indexes_stakes.png')
+    plt.show()
+    plt.close()
+
+
+def plot_snapshots_rolls_gini_index():
+    # take only some cycle's snapshots to look at individual sections
+    start = 0
+    end = 397
+    gini_indexes_all_bakers_snapshot = compute_gini_snapshot_rolls(start, end)
+    y_data_length = len(gini_indexes_all_bakers_snapshot)
+    x_data = list(range(0, y_data_length))
+    y_data = gini_indexes_all_bakers_snapshot
+    print('ydata lenght', y_data_length)
+    print('y data last entries', y_data[:-5])
+    plt.plot(x_data, y_data)
+    plt.title('Gini indexes Snapshot rolls from cycles ' + str(start) + ' to ' + str(end))
+    plt.xlabel('Snapshots Cycles')
+    plt.ylabel('Gini index')
+    plt.savefig('Snapshot_rolls_cycle' + str(start) + 'to' + str(end) + '_gini_index.png')
+    plt.show()
+    plt.close()
+
+
+def plot_snapshot_rewards_gini_index():
+    # TODO: take only some snapshots for testing it, then take all if possible with runtime
+    start = 0
+    end = 5
+    gini_indexes_all_bakers_rewards = compute_gini_snapshot_rewards(start, end)
+    y_data_length = len(gini_indexes_all_bakers_rewards)
+    x_data = list(range(0, y_data_length))
+    y_data = gini_indexes_all_bakers_rewards
+    plt.plot(x_data, y_data)
+    plt.title('Gini indexes Snapshot rewards')
+    plt.xlabel('Snapshots')
+    plt.ylabel('Gini index')
+    plt.savefig('Snapshot_rewards_gini_index.png')
     plt.show()
     plt.close()
 
@@ -354,6 +412,8 @@ if __name__ == '__main__':
     plot_num_bakers_per_cycle()
     plot_total_amount_of_stakes_per_cycle()
     # TODO: look at a snapshot and plot the gini over a section of blocks (i.e. a snapshot)
+    plot_snapshots_rolls_gini_index() # can be called for a certain amount of cyclesnapshots
+    # plot_snapshot_rewards_gini_index() # TODO: implement
     cur.close()
 
 # TODO: make a plot with x axis staking of bakers (all bakers on x axis), y axis rewards of the bakers
