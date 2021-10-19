@@ -299,6 +299,7 @@ def compute_gini_stakes_era(start, end):
 
 
 def compute_gini_snapshot_rolls(start, end):
+    """Note: a roll denotes 8000tz"""
     """Gini index of snapshot rolls over all bakers per cycle (start <= cycle <= end)"""
     gini_indexes_list = []
     for cycle in range(start, end + 1):
@@ -312,12 +313,25 @@ def compute_gini_snapshot_rolls(start, end):
     return gini_indexes_list
 
 
-def compute_gini_snapshot_rewards():
-    """TODO: implement this so that we get gini index list of all baker rewards per snapshot"""
+def compute_gini_snapshot_stakes(start, end):
+    """Gini index of snapshot stakes over all bakers per cycle (start <= cycle <=end"""
     gini_indexes_list = []
+    stakes = []
+    for cycle in range(start, end + 1):
+        # TODO: merge the snapshot table so that it contains the snapshot data and the stakes associated? how?
+        # get percentage of staking_balance of a baker compared to the staking_supply total that a cycle has
+        stake = cur.execute('SELECT staking_balance/staking_supply from baker_stake_cycles WHERE cycle= %s' % cycle)
+        for s in stake:
+            stakes.append(s[0])
+        np.asarray(stakes)
+        gini_cycle = calculate_gini_index(stakes)
+        print('stakes', stakes)
+        gini_indexes_list.append(gini_cycle)
     return gini_indexes_list
 
 
+# TODO: remove this and plot gini index of rewards (we already have the rewards) -> then make a plot and compare with the t-7 shifted
+# high stakes should get high rewards
 def plot_era_stakes_gini(start, end, era_name):
     gini_indexes_all_bakers_staking = compute_gini_stakes_era(start, end)
     y_data_length = len(gini_indexes_all_bakers_staking)
@@ -337,11 +351,9 @@ def plot_snapshots_rolls_gini_index():
     start = 161
     end = 207
     gini_indexes_all_bakers_snapshot = compute_gini_snapshot_rolls(start, end)
-    y_data_length = len(gini_indexes_all_bakers_snapshot)
-    x_data = list(range(start, end +1))
+    x_data = list(range(start, end + 1))
     y_data = gini_indexes_all_bakers_snapshot
-    print('ydata lenght', y_data_length)
-    print('y data last entries', y_data[:-5])
+    # TODO: fix the y axis same for all this plots
     plt.plot(x_data, y_data)
     plt.title('Gini indexes Snapshot rolls from cycles ' + str(start) + ' to ' + str(end))
     plt.xlabel('Snapshots Cycles')
@@ -351,19 +363,20 @@ def plot_snapshots_rolls_gini_index():
     plt.close()
 
 
-def plot_snapshot_rewards_gini_index():
-    # TODO: take only some snapshots for testing it, then take all if possible with runtime
-    start = 0
-    end = 5
-    gini_indexes_all_bakers_rewards = compute_gini_snapshot_rewards(start, end)
-    y_data_length = len(gini_indexes_all_bakers_rewards)
-    x_data = list(range(0, y_data_length))
-    y_data = gini_indexes_all_bakers_rewards
+# TODO: change this to rewards here!!
+# How much did a baker earn per cycle, snapshot t-7 corresponds to cycle t --> rewards per baker per cycle
+# then compare with snapshot t-7
+def plot_snapshot_stakes_gini_index():
+    start = 1
+    end = 160
+    gini_indexes_all_bakers_stakes = compute_gini_snapshot_stakes(start, end)
+    x_data = list(range(start, end + 1))
+    y_data = gini_indexes_all_bakers_stakes
     plt.plot(x_data, y_data)
-    plt.title('Gini indexes Snapshot rewards')
-    plt.xlabel('Snapshots')
+    plt.title('Gini indexes Snapshot stakes ' + str(start) + ' to ' + str(end))
+    plt.xlabel('Snapshots (Cycles)')
     plt.ylabel('Gini index')
-    plt.savefig('Snapshot_rewards_gini_index.png')
+    plt.savefig('Snapshot_stakes' + str(start) + 'to' + str(end) + '_gini_index.png')
     plt.show()
     plt.close()
 
@@ -409,21 +422,23 @@ if __name__ == '__main__':
 
     plot_num_bakers_per_cycle()
     plot_total_amount_of_stakes_per_cycle()
-    # TODO: look at a snapshot and plot the gini over a section of blocks (i.e. a snapshot)
-    plot_snapshots_rolls_gini_index() # can be called for a certain amount of cyclesnapshots
-    # plot_snapshot_rewards_gini_index() # TODO: implement
+    plot_snapshots_rolls_gini_index()
+    plot_snapshot_stakes_gini_index()
+
+    # snapshot data observation
+    num_rolls_total = cur.execute('SELECT SUM(rolls) from snapshots')
+    num_rolls_selfdelegate = cur.execute('SELECT SUM(rolls) from snapshots where address = delegate_addres')
+    print('Total number of rolls: ', num_rolls_total)
+    print('Total number of rolls self-delegate: ', num_rolls_selfdelegate)
     cur.close()
+
 
 # TODO: make a plot with x axis staking of bakers (all bakers on x axis), y axis rewards of the bakers
 # just do it for a few cycles and select randomly (i.e .for higher stake we should have higher reward -> 45 degree)
-
-
-# TODO: take snapshots --> get gini indexes for rolls in snapshots and look at a sequence of snapshots TODO: get get
-#  distribution of rolls for all bakers in a snapshot and calculate gini index for bakers, associate snapshot data
-#  and cycle TODO: get percentage of staking_balance of a baker compared to the staking_supply total that a cycle has
-#   TODO: make a plot with on x axis staking of bakers (all bakers on x axis), y axis rewards of the bakers ,
-#    just do it for a few cycles and select randomly --> theoretically for higher stake -> higher reward (somehow 45
-#    degree slope) (for few cycles only) TODO: total amount of bakers, amount of staking in total
+# TODO: get percentage of staking_balance of a baker compared to the staking_supply total that a cycle has
+# TODO: make a plot with on x axis staking of bakers (all bakers on x axis), y axis rewards of the bakers ,
+#   just do it for a few cycles and select randomly --> theoretically for higher stake -> higher reward (somehow 45
+#   degree slope) (for few cycles only) TODO: total amount of bakers, amount of staking in total
 
 
 # TODO: important -> control all the array that they sum up in the correct way

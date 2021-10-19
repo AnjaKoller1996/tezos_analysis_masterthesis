@@ -41,3 +41,9 @@
 # SELECT ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS MyInd from blocks;
 # insert into blocks.myIndex values (SELECT ROW_NUMBER() OVER(ORDER BY (SELECT 1)) AS MyInd from blocks);
 # TODO: above This from the idea but not working
+
+
+# creation baker_stake_cycles table
+#create table baker_stake_cycles AS SELECT baker_staking_cycles.cycle, baker_staking_cycle.address,
+# baker_staking_cycle.staking_balance, cycles.cycle, cycles.staking_supply, cycles.staking_percent
+# FROM baker_staking_cycles INNER JOIN cycles ON baker_staking_cycles.cycle = cycles.cycle;
