@@ -18,7 +18,15 @@ def get_avg_reward_per_cycle():
 
 
 def get_baker_addresses():
-    baker_addresses = cur.execute('SELECT address FROM bakers').fetchall()
+    baker_addresses = cur.execute('SELECT DISTINCT(address) FROM bakers').fetchall()
+    baker_address_list = []
+    for add in baker_addresses:
+        baker_address_list.append(add[0])
+    return baker_address_list
+
+
+def get_baker_addresses_from_block():
+    baker_addresses = cur.execute('SELECT DISTINCT(baker) FROM blocks').fetchall()
     baker_address_list = []
     for add in baker_addresses:
         baker_address_list.append(add[0])
@@ -29,23 +37,20 @@ def calculate_gini_index(wealths):
     """Compute Gini coefficient of array of values"""
     # convert list to numpy array
     wealths = np.asarray(wealths)
-    diffsum = 0
-    for i, xi in enumerate(wealths[:-1], 1):
-        diffsum += np.sum(np.abs(xi - wealths[i:]))
-    return diffsum / (len(wealths) ** 2 * np.mean(wealths))
+    if np.sum(wealths) == 0:
+        return 1
+    else:
+        diffsum = 0
+        for i, xi in enumerate(wealths[:-1], 1):
+            diffsum += np.sum(np.abs(xi - wealths[i:]))
+        return diffsum / (len(wealths) ** 2 * np.mean(wealths))
 
 
-# TODO: check this
 def compute_gini_all_bakers_per_cycle(start, end):
     gini_indexes_list = []
-    rewards = []
-    baker_address_list = get_baker_addresses()
-    # TODO=: check What we want: for each baker (i.e. about 400 baker -> 400 arrays) an array of rewards -> for each
-    #  of these we compute the gini and for each cycle we take all the rewards of the bakers and take the gini index
-    #  per baker per cycle
-    for baker in baker_address_list:
-        rew = cur.execute('SELECT reward FROM blocks where baker=? AND cycle >=? AND cycle <=? GROUP BY '
-                          'cycle, baker', (baker, start, end)).fetchall()
+    for cycle in range(start, end+1):
+        rewards = []
+        rew = cur.execute('SELECT reward FROM blocks WHERE cycle = %s' % cycle).fetchall()
         for r in rew:
             rewards.append(r[0])
         np.asarray(rewards)
@@ -146,7 +151,6 @@ def plot_histogram_5cycles_baker_rewards():
     plt.close()
 
 
-# TODO: needed?
 def plot_gini_indexes_rewards_all_bakers_per_cycle(start, end):
     gini_indexes_all_bakers_rewards = compute_gini_all_bakers_per_cycle(start, end)
     y_data_length = len(gini_indexes_all_bakers_rewards)
@@ -155,7 +159,7 @@ def plot_gini_indexes_rewards_all_bakers_per_cycle(start, end):
     y_data = gini_indexes_all_bakers_rewards
     plt.ylim(0.0, 0.5)  # make it the same scale as the plots for the stakes
     plt.plot(x_data, y_data)
-    plt.title('Gini indexes rewards from ' + str(start) + 'to ' + str(end) + ' all bakers per cycle')
+    plt.title('Gini indexes rewards from ' + str(start) + ' to ' + str(end) + ' all bakers per cycle')
     plt.xlabel('Cycles')
     plt.ylabel('Gini index')
     plt.savefig('Gini_indexes_all_bakers_' + str(start) + 'to' + str(end) + '_rewards_per_cycle.png')
@@ -240,8 +244,8 @@ if __name__ == '__main__':
     plot_reward_standard_deviation_all_cycles()
     plot_histogram_5cycles_baker_rewards()
     # Plot gini indexes of baker rewards for each era
-    # TODO: check this does not seem to give a reasonable gini for the rewards
-    #plot_gini_indexes_rewards_all_bakers_per_cycle(0, 160)  # takes a while, to debug the rest uncomment this
+    # TODO: check this does not seem to give a reasonable gini for the rewards -> DEBUG
+    plot_gini_indexes_rewards_all_bakers_per_cycle(250, 251)  # takes a while, to debug the rest uncomment this
     #plot_gini_indexes_rewards_all_bakers_per_cycle(161, 207)
     #plot_gini_indexes_rewards_all_bakers_per_cycle(208, 270)
     #plot_gini_indexes_rewards_all_bakers_per_cycle(271, 325)
