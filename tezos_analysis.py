@@ -155,7 +155,7 @@ def plot_gini_indexes_rewards_all_bakers_per_cycle(start, end):
     gini_indexes_all_bakers_rewards = compute_gini_all_bakers_per_cycle(start, end)
     y_data_length = len(gini_indexes_all_bakers_rewards)
     # ensure that x_data and y_data have same length (can be different due to extracting it at different times)
-    x_data = list(range(0, y_data_length))
+    x_data = list(range(start, end +1))
     y_data = gini_indexes_all_bakers_rewards
     plt.ylim(0.0, 0.1)  # make it the same scale as the plots for the stakes
     plt.plot(x_data, y_data)
