@@ -214,7 +214,7 @@ def plot_snapshots_rolls_gini_index(start, end):
     plt.xlabel('Snapshots Cycles')
     plt.ylabel('Gini index')
     plt.ylim(0.6, 0.95)  # make it the same scale as the plots for rewards
-    plt.savefig('Snapshot_rolls_cycle' + str(start) + 'to' + str(end) + '_gini_index.png')
+    plt.savefig('Snapshot_rolls_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
     plt.show()
     plt.close()
 
