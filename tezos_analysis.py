@@ -2,6 +2,8 @@ import sqlite3
 import numpy as np
 import matplotlib.pyplot as plt
 
+DB_FILE = '/home/anjakoller/tezos_dataextraction_merged_alltables.db'
+
 
 def get_avg_reward_over_cycles():
     # get average reward from blocks over all the cycles
@@ -123,8 +125,7 @@ def plot_reward_standard_deviation_all_cycles():
     plt.xlabel('Cycle')
     plt.ylabel('Reward')
     plt.legend()
-    plt.show()
-    plt.savefig('Baker_reward_deviation_from_average.png')
+    plt.savefig('images/Baker_reward_deviation_from_average.png')
     plt.close()
 
 
@@ -146,8 +147,7 @@ def plot_histogram_5cycles_baker_rewards():
     plt.title('Distribution of reward amounts among bakers')
     plt.xlabel('How much above or below baseline')
     plt.ylabel('Number of Bakers')
-    plt.savefig('Histogram_5_cycles_baker_rewards.png')
-    plt.show()
+    plt.savefig('images/Histogram_5_cycles_baker_rewards.png')
     plt.close()
 
 
@@ -157,13 +157,12 @@ def plot_gini_indexes_rewards_all_bakers_per_cycle(start, end):
     # ensure that x_data and y_data have same length (can be different due to extracting it at different times)
     x_data = list(range(0, y_data_length))
     y_data = gini_indexes_all_bakers_rewards
-    plt.ylim(0.0, 0.5)  # make it the same scale as the plots for the stakes
+    plt.ylim(0.0, 0.1)  # make it the same scale as the plots for the stakes
     plt.plot(x_data, y_data)
     plt.title('Gini indexes rewards from ' + str(start) + ' to ' + str(end) + ' all bakers per cycle')
     plt.xlabel('Cycles')
     plt.ylabel('Gini index')
-    plt.savefig('Gini_indexes_all_bakers_' + str(start) + 'to' + str(end) + '_rewards_per_cycle.png')
-    plt.show()
+    plt.savefig('rewards_gini/Gini_indexes_all_bakers_' + str(start) + 'to' + str(end) + '_rewards_per_cycle.png')
     plt.close()
 
 
@@ -176,8 +175,7 @@ def plot_era_baker_reward(start, end, era_name):
     plt.title('Reward all bakers per cycle in Upgrade Era ' + era_name)
     plt.xlabel('Cycles (Time)')
     plt.ylabel('Rewards')
-    plt.savefig('Reward_all_bakers_per_cycle_' + era_name + '.png')
-    plt.show()
+    plt.savefig('rewards_baker/Reward_all_bakers_per_cycle_' + era_name + '.png')
     plt.close()
     return
 
@@ -189,8 +187,7 @@ def plot_num_working_bakers_per_cycle():
     plt.title('Total number of working bakers per cycle')
     plt.xlabel('Cycles')
     plt.ylabel('Number of bakers')
-    plt.savefig('Total_num_working_bakers_per_cycle.png')
-    plt.show()
+    plt.savefig('images/Total_num_working_bakers_per_cycle.png')
     plt.close()
 
 
@@ -201,8 +198,7 @@ def plot_num_active_bakers_per_cycle():
     plt.title('Total number of active bakers per cycle')
     plt.xlabel('Cycles')
     plt.ylabel('Number of bakers')
-    plt.savefig('Total_num_active_bakers_per_cycle.png')
-    plt.show()
+    plt.savefig('images/Total_num_active_bakers_per_cycle.png')
     plt.close()
 
 
@@ -218,15 +214,13 @@ def plot_snapshots_rolls_gini_index(start, end):
     plt.xlabel('Snapshots Cycles')
     plt.ylabel('Gini index')
     plt.ylim(0.6, 0.95)  # make it the same scale as the plots for rewards
-    plt.savefig('Snapshot_rolls_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
-    plt.show()
+    plt.savefig('snapshots/Snapshot_rolls_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
     plt.close()
 
 
 if __name__ == '__main__':
     # Setup db
-    db_file = '/home/anjakoller/tezos_dataextraction_merged_alltables.db'
-    con = sqlite3.connect(db_file)  # attributes: cycle, baker, fee, reward, deposit, blocks (merged db)
+    con = sqlite3.connect(DB_FILE)  # attributes: cycle, baker, fee, reward, deposit, blocks (merged db)
     cur = con.cursor()
 
     # Variables
@@ -244,30 +238,25 @@ if __name__ == '__main__':
     plot_reward_standard_deviation_all_cycles()
     plot_histogram_5cycles_baker_rewards()
     # Plot gini indexes of baker rewards for each era
-    # TODO: check this does not seem to give a reasonable gini for the rewards -> DEBUG
-    plot_gini_indexes_rewards_all_bakers_per_cycle(250, 251)  # takes a while, to debug the rest uncomment this
-    #plot_gini_indexes_rewards_all_bakers_per_cycle(161, 207)
-    #plot_gini_indexes_rewards_all_bakers_per_cycle(208, 270)
-    #plot_gini_indexes_rewards_all_bakers_per_cycle(271, 325)
-    #plot_gini_indexes_rewards_all_bakers_per_cycle(326, 397)
+
+    start_cycles = [0, 161, 208, 271, 326]
+    end_cycles = [160, 207, 270, 325, 397]
+    for start, end in zip(start_cycles, end_cycles):
+        plot_gini_indexes_rewards_all_bakers_per_cycle(start, end)
 
     # Snapshot rolls gini index plots
-    plot_snapshots_rolls_gini_index(0, 160)  # athens
-    plot_snapshots_rolls_gini_index(161, 207)  # babylon
-    plot_snapshots_rolls_gini_index(208, 270)  # carthage
-    plot_snapshots_rolls_gini_index(271, 325)  # delphi
-    plot_snapshots_rolls_gini_index(326, 397)  # edo
+    # TODO: check this does not seem to give a reasonable gini for the rewards -> DEBUG
+    for start, end in zip(start_cycles, end_cycles):
+        plot_snapshots_rolls_gini_index(start, end)
 
     # Baker rewards per era
-    # plot_era_baker_reward(0, 160, 'Athens')
-    # plot_era_baker_reward(161, 207, 'Babylon')
-    # plot_era_baker_reward(208, 270, 'Carthage')
-    # plot_era_baker_reward(271, 325, 'Delphi')
-    # plot_era_baker_reward(326, 397, 'Edo')
+    # cycle_names = ['Athens', 'Babylon', 'Carthage', 'Delphi', 'Edo']
+    # for start, end, cycle_name in zip(start_cycles, end_cycles, cycle_names):
+    #     plot_era_baker_reward(start, end, cycle_name)
 
     # get number of active and working bakers per cycle
     plot_num_working_bakers_per_cycle()
     plot_num_active_bakers_per_cycle()
 
     # Close connection
-    cur.close()
+    con.close()
