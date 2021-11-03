@@ -16,28 +16,40 @@ if not LOAD_FROM_CACHE:
     r = requests.get(api_url_bakers, params=params)
     baker_response = r.json()
     # pprint(baker_response[0])
-    with open("bakers.pickle", "wb") as outfile:
+    with open("bakers", "wb") as outfile:
         pickle.dump(baker_response, outfile)
 else:
-    with open("bakers.pickle", "rb") as infile:
+    with open("bakers", "rb") as infile:
         baker_response = pickle.load(infile)
 
 
 snapshot_table_api_url = 'https://api.tzstats.com/tables/snapshot'
+block_table_api_url = 'https://api.tzstats.com/tables/block' # cycle=150&is_cycle_snapshot=1
 snapshots = []
 addresses = [r['address'] for r in baker_response]
+cycles = list(range(0, 396)) # array with all the cycles
 
-for address in addresses:   # for all bakers:
-    # if we want additionally add a cycle number specify here cycle number
+for cycle in cycles:   # for all bakers:
     # get all snapshots per baker
     params = {'limit': 10000}
-    # r = requests.get(snapshot_table_api_url + '?address=' + address + "&is_selected=1", params=params)  #TODO: is is_selected needed?
-    r = requests.get(snapshot_table_api_url + '?address=' + address+ "&cycle=57" + "&is_selected=1",
-                     params=params)  # TODO: is is_selected needed?
+    # https: // api.tzstats.com / tables / block?cycle = 150 & is_cycle_snapshot = 1
+    r = requests.get(block_table_api_url + '?cycle=' + cycle + "&is_cycle_snapshot=1",
+                     params=params)
     snapshot_response = r.json()
     snapshots.extend(snapshot_response)
 
 snapshots_length = len(snapshots)
+
+
+class BlockTable:
+    def __init__(self, row_id, is_orphan, cycle, fitness, baker_id, fee, reward, deposit, baker ):
+        self.row_id = row_id
+        self.is_orphan = is_orphan
+        self.cycle = cycle
+        self.fitness = fitness
+        self.baker_id = baker_id          # unique row id of the block's baker account
+        # TODO: extract the row_id of the baker accounts --> get baker table again with the row_id and rolls information
+        # row_id -> block_table[0], is_orphan [3], cycle [5], fitness [11], baker_id
 
 
 class Snapshot:
