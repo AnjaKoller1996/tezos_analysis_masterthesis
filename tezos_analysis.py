@@ -127,6 +127,41 @@ def compute_base_rolls_proportion():
     # TODO: implement avg/base proportion expected fairness
     return 1
 
+    def error_if_not_in_range01(value):
+        if (value <= 0) or (value > 1):
+            raise Exception(str(value) + ' is not in [0,1)!')
+
+
+def Group_negentropy(x_i):
+    if x_i == 0:
+        return 0
+    else:
+        return x_i*np.log(x_i)
+
+
+def H(x):
+    n = len(x)
+    entropy = 0.0
+    sum = 0.0
+    for x_i in x:  # work on all x[i]
+        sum += x_i
+        group_negentropy = Group_negentropy(x_i) # x_i*log(x_i)
+        entropy += group_negentropy
+    return -entropy
+
+
+def compute_theil_index(arr):
+    """Computes theil index according to the formula from wiki: https://de.wikipedia.org/wiki/Theil-Index,
+    see: https://stackoverflow.com/questions/20279458/implementation-of-theil-inequality-index-in-python
+    see also: https://www.classicistranieri.com/de/articles/t/h/e/Theil-Index_c341.html"""
+    print('x', arr)
+    n = len(arr)
+    maximum_entropy = np.log(n)
+    actual_entropy = H(arr)
+    redundancy = maximum_entropy - actual_entropy
+    inequality = 1-np.exp(-redundancy)
+    return redundancy, inequality
+
 
 def get_lorenz(arr):
     arr = np.asarray(arr)
@@ -339,6 +374,13 @@ if __name__ == '__main__':
     # TODO: look at it only at a specific cycle for all the bakers -> or at 3 different cycles for example
     plot_lorenz_curve(rewards)  # compute lorenz curve with reward per baker
     # compute lorenz curve with income_fees() # TODO: use income table for this
+
+    # Theil index
+    # Theil-Index is the "contribution" of the subgroup to the inequality of the whole group
+    # below needs to be done with subgroups
+    redundancy, inequality = compute_theil_index(rewards)
+    print('Theil index redundancy', redundancy)
+    print('Theil index inequality', inequality)
 
     # Close connection
     con.close()
