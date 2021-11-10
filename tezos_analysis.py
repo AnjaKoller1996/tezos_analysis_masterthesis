@@ -128,6 +128,17 @@ def compute_base_rolls_proportion():
     return 1
 
 
+def get_lorenz(arr):
+    arr = np.asarray(arr)
+    # first sort array from lowest to highest
+    np.sort(arr)
+    # this divides the prefix sum by the total sum
+    # this ensures all the values are between 0 and 1.0
+    scaled_prefix_sum = arr.cumsum() / arr.sum()
+    # this prepends the 0 value (because 0% of all people have 0% of all wealth)
+    return np.insert(scaled_prefix_sum, 0, 0)
+
+
 # plot the rewards standard deviations for the bakers for all cycles
 def plot_reward_standard_deviation_all_cycles():
     avg_reward_per_cycle_list = get_avg_reward_per_cycle()
@@ -263,6 +274,21 @@ def plot_fairness_comparison_rewards_rolls(start, end, alpha):
     plt.close()
 
 
+def plot_lorenz_curve(arr):
+    """The Lorenz curve is a common graphical method to represent the degree of income inequality. It plots the
+    cumulative share of income (y axis) earned by the poorest x percentages of the population,for all values of x """
+    # x axis: percentage of participants
+    y_data = get_lorenz(arr)  # percentage of share of reward
+    plt.plot(np.linspace(0.0, 1.0, get_lorenz(arr).size), y_data, label='Lorenz curve')
+    # plot the straight line perfect equality curve
+    plt.plot([0, 1], [0, 1])
+    plt.title('Lorenz Curve')
+    plt.xlabel('Percentage of Participants')
+    plt.ylabel('Percentage of Income share')
+    plt.savefig('images/Lorenz_curve')
+    plt.close()
+
+
 if __name__ == '__main__':
     # Setup db
     con = sqlite3.connect(DB_FILE)  # attributes: cycle, baker, fee, reward, deposit, blocks (merged db)
@@ -296,7 +322,8 @@ if __name__ == '__main__':
 
     # TODO: fairness measure -> in a cycle compare proportion of rolls and proportion of rewards -> define an "ok
     #  band" and a stochastic variation which is ok
-    plot_fairness_comparison_rewards_rolls(250, 251, 0.03)  # look at cycle 250 and have a variation of 3% tolerance
+    # TODO: below
+    # plot_fairness_comparison_rewards_rolls(250, 251, 0.03)  # look at cycle 250 and have a variation of 3% tolerance
 
     # Baker rewards per era
     # cycle_names = ['Athens', 'Babylon', 'Carthage', 'Delphi', 'Edo']
@@ -306,6 +333,12 @@ if __name__ == '__main__':
     # get number of active and working bakers per cycle
     plot_num_working_bakers_per_cycle()
     plot_num_active_bakers_per_cycle()
+
+    # Lorenz curve
+    rewards = compute_reward_era_baker_per_cycle(0, 404)
+    # TODO: look at it only at a specific cycle for all the bakers -> or at 3 different cycles for example
+    plot_lorenz_curve(rewards)  # compute lorenz curve with reward per baker
+    # compute lorenz curve with income_fees() # TODO: use income table for this
 
     # Close connection
     con.close()
