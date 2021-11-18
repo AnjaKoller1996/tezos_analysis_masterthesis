@@ -324,6 +324,36 @@ def plot_lorenz_curve(arr):
     plt.close()
 
 
+def plot_expectational_fairness(initial_reward, rewards, start, end):
+    """the expectation of the fraction of the reward that baker A receives of the total reward should be equal to his
+    initial resource a --> on x axis we have the number of blocks/cycles and on the y axis the fraction of the total
+    reward, and another line x_a for the initital resource, start: startcycle/startblock, end: endcycle/endblock"""
+    x_data = list((range(start, end + 1)))
+    y_data = rewards/rewards  # TODO: --> make this -> take an array of reward at cycle x and the
+    # reward of baker A at cycle x
+    n = len(rewards)
+    x2_data = [initial_reward] * n
+    plt.plot(x_data, y_data, label='Fraction of resource')
+    plt.plot(x2_data, y_data, label='Initial resource')
+    plt.title('Expectational Fairness')
+    plt.savefig('images/expectational_fairness')
+    plt.close()
+
+
+def simulate_robust_fairness(address, epsilon, total_rewards, delta=0.9):
+    """Robust fairness Pr((1-epsilon)*a <= gamma_a <= (1+epsilon)*a) <= (1-delta)
+    gamma_a: fraction that baker A receives of total reward,
+    a: initial resource of Baker A
+    address: address of baker A
+    epsilon: between 0 and 1
+    delta: >=1"""
+    # TODO: find out which value of epsilon is correct
+    reward_baker_a = cur.execute('SELECT total_balance FROM bakers WHERE address = %s' % address).fetchall()[0]
+    # TODO: this reward data here may come from the income table or archive data later
+    gamma_a = reward_baker_a/total_rewards
+    # TODO: which values of epsilon and delta do we have?
+
+
 if __name__ == '__main__':
     # Setup db
     con = sqlite3.connect(DB_FILE)  # attributes: cycle, baker, fee, reward, deposit, blocks (merged db)
