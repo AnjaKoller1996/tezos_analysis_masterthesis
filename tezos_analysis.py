@@ -27,6 +27,14 @@ def get_baker_addresses():
     return baker_address_list
 
 
+def get_baker_addresses_from_income_table():
+    baker_addresses = cur.execute('SELECT DISTINCT(address) FROM income_table').fetchall()
+    baker_address_list = []
+    for add in baker_addresses:
+        baker_address_list.append(add[0])
+    return baker_address_list
+
+
 def get_baker_addresses_from_block():
     baker_addresses = cur.execute('SELECT DISTINCT(baker) FROM blocks').fetchall()
     baker_address_list = []
@@ -86,17 +94,51 @@ def compute_num_active_bakers_per_cycle_list():
     return num_bakers_list
 
 
-def compute_gini_snapshot_rolls(start, end):
-    """Note: a roll denotes 8000tz"""
-    """Gini index of snapshot rolls over all bakers per cycle (start <= cycle <= end)"""
+#def compute_gini_snapshot_rolls(start, end):
+#    """Note: a roll denotes 8000tz"""
+#    """Gini index of snapshot rolls over all bakers per cycle (start <= cycle <= end)"""
+#    gini_indexes_list = []
+#    for cycle in range(start, end + 1):
+#        rolls = []
+#        roll = cur.execute('SELECT rolls FROM snapshots WHERE cycle = %s' % cycle).fetchall()
+#        for r in roll:
+#            rolls.append(r[0])
+#        np.asarray(rolls)
+#        gini_cycle = calculate_gini_index(rolls)
+#        gini_indexes_list.append(gini_cycle)
+#    return gini_indexes_list
+
+
+def compute_gini_income_table_rolls(start, end):
+    """ Gini index of snapshot rolls over all bakers per cycle (start y=cycle <=end)"""
+    # TODO: compute the gini index of income table snapshot rolls, vgl above function
+    # TODO: there are not always the same bakers, sometimes less sometimes more -> PROBLEM?
+    # for every cycle we have num_baker_addresses entries for the rolls -> compute gini index of them
     gini_indexes_list = []
     for cycle in range(start, end + 1):
         rolls = []
-        roll = cur.execute('SELECT rolls FROM snapshots WHERE cycle = %s' % cycle).fetchall()
+        roll = cur.execute('SELECT rolls FROM income_table WHERE cycle= %s' % cycle).fetchall()
         for r in roll:
             rolls.append(r[0])
         np.asarray(rolls)
         gini_cycle = calculate_gini_index(rolls)
+        gini_indexes_list.append(gini_cycle)
+    return gini_indexes_list
+
+
+def compute_gini_income_table_rewards(start, end):
+    """ Gini index of snapshot rolls over all bakers per cycle (start y=cycle <=end)"""
+    # TODO: compute the gini index of income table snapshot rewards, vgl above function
+    # TODO: there are not always the same bakers, sometimes less sometimes more -> PROBLEM?
+    # for every cycle we have num_baker_addresses entries for the total_income -> compute gini index of them
+    gini_indexes_list = []
+    for cycle in range(start, end + 1):
+        incomes = []
+        income = cur.execute('SELECT total_income FROM income_table WHERE cycle= %s' % cycle).fetchall()
+        for r in income:
+            incomes.append(r[0])
+        np.asarray(incomes)
+        gini_cycle = calculate_gini_index(incomes)
         gini_indexes_list.append(gini_cycle)
     return gini_indexes_list
 
@@ -275,17 +317,47 @@ def plot_num_active_bakers_per_cycle():
 
 # TODO: How much did a baker earn per cycle, snapshot t-7 corresponds to cycle t --> rewards per baker per cycle
 # then compare with snapshot t-7
-def plot_snapshots_rolls_gini_index(start, end):
+#def plot_snapshots_rolls_gini_index(start, end):
     # take only some cycle's snapshots to look at individual sections
-    gini_indexes_all_bakers_snapshot = compute_gini_snapshot_rolls(start, end)
+#    gini_indexes_all_bakers_snapshot = compute_gini_snapshot_rolls(start, end)
+#    x_data = list(range(start, end + 1))
+#    y_data = gini_indexes_all_bakers_snapshot
+#    plt.plot(x_data, y_data)
+#    plt.title('Gini indexes Snapshot rolls (reward) from cycles ' + str(start) + ' to ' + str(end))
+#    plt.xlabel('Snapshots Cycles')
+#    plt.ylabel('Gini index')
+#    plt.ylim(0.6, 0.95)  # make it the same scale as the plots for rewards
+#    plt.savefig('snapshots/Snapshot_rolls_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
+#    plt.close()
+
+
+# TODO: do the same for the total_income gini index computation
+def plot_income_rolls_gini_index(start, end):
+    # select * from income_table where cycle = 150 and address='tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9';
+    # select distinct(address) from income_table;
+    baker_addresses = get_baker_addresses_from_income_table()
+    gini_indexes_income_table_rolls = compute_gini_income_table_rolls(start, end)
     x_data = list(range(start, end + 1))
-    y_data = gini_indexes_all_bakers_snapshot
+    y_data = gini_indexes_income_table_rolls
     plt.plot(x_data, y_data)
-    plt.title('Gini indexes Snapshot rolls (reward) from cycles ' + str(start) + ' to ' + str(end))
-    plt.xlabel('Snapshots Cycles')
+    plt.title('Gini indexes income_table rolls from cycles ' + str(start) + ' to ' + str(end))
+    plt.xlabel('Cycles')
     plt.ylabel('Gini index')
-    plt.ylim(0.6, 0.95)  # make it the same scale as the plots for rewards
-    plt.savefig('snapshots/Snapshot_rolls_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
+    # TODO: make this same scale as rewards (aka income) plot
+    plt.savefig('images/income_table_rolls_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
+    plt.close()
+
+
+def plot_income_rewards_gini_index(start, end):
+    gini_indexes_income_table_rewards = compute_gini_income_table_rewards(start, end)
+    x_data = list(range(start, end + 1))
+    y_data = gini_indexes_income_table_rewards
+    plt.plot(x_data, y_data)
+    plt.title('Gini indexes income_table rewards from cycles ' + str(start) + ' to ' + str(end))
+    plt.xlabel('Cycles')
+    plt.ylabel('Gini index')
+    # TODO: make this same scale as rewards (aka income) plot
+    plt.savefig('images/income_table_rewards_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
     plt.close()
 
 
@@ -382,8 +454,8 @@ if __name__ == '__main__':
 
     # Snapshot rolls gini index plots
     # TODO: check this does not seem to give a reasonable gini for the rewards -> DEBUG -> TOO many snapshots
-    for start, end in zip(start_cycles, end_cycles):
-        plot_snapshots_rolls_gini_index(start, end)
+    #for start, end in zip(start_cycles, end_cycles):
+    #    plot_snapshots_rolls_gini_index(start, end)
 
     # TODO: fairness measure -> in a cycle compare proportion of rolls and proportion of rewards -> define an "ok
     #  band" and a stochastic variation which is ok
@@ -411,6 +483,14 @@ if __name__ == '__main__':
     redundancy, inequality = compute_theil_index(rewards)
     print('Theil index redundancy', redundancy)
     print('Theil index inequality', inequality)
+
+    plot_income_rolls_gini_index(150, 200)  # TODO: just choose a fraction to test it
+    plot_income_rolls_gini_index(150, 350)
+    plot_income_rolls_gini_index(0, 390)
+
+    plot_income_rewards_gini_index(150, 200)
+    plot_income_rewards_gini_index(150, 350)
+    plot_income_rewards_gini_index(0, 390)
 
     # Close connection
     con.close()
