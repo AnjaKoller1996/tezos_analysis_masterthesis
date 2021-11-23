@@ -94,7 +94,7 @@ def compute_num_active_bakers_per_cycle_list():
     return num_bakers_list
 
 
-#def compute_gini_snapshot_rolls(start, end):
+# def compute_gini_snapshot_rolls(start, end):
 #    """Note: a roll denotes 8000tz"""
 #    """Gini index of snapshot rolls over all bakers per cycle (start <= cycle <= end)"""
 #    gini_indexes_list = []
@@ -178,7 +178,7 @@ def Group_negentropy(x_i):
     if x_i == 0:
         return 0
     else:
-        return x_i*np.log(x_i)
+        return x_i * np.log(x_i)
 
 
 def H(x):
@@ -187,7 +187,7 @@ def H(x):
     sum = 0.0
     for x_i in x:  # work on all x[i]
         sum += x_i
-        group_negentropy = Group_negentropy(x_i) # x_i*log(x_i)
+        group_negentropy = Group_negentropy(x_i)  # x_i*log(x_i)
         entropy += group_negentropy
     return -entropy
 
@@ -201,7 +201,7 @@ def compute_theil_index(arr):
     maximum_entropy = np.log(n)
     actual_entropy = H(arr)
     redundancy = maximum_entropy - actual_entropy
-    inequality = 1-np.exp(-redundancy)
+    inequality = 1 - np.exp(-redundancy)
     return redundancy, inequality
 
 
@@ -317,8 +317,8 @@ def plot_num_active_bakers_per_cycle():
 
 # TODO: How much did a baker earn per cycle, snapshot t-7 corresponds to cycle t --> rewards per baker per cycle
 # then compare with snapshot t-7
-#def plot_snapshots_rolls_gini_index(start, end):
-    # take only some cycle's snapshots to look at individual sections
+# def plot_snapshots_rolls_gini_index(start, end):
+# take only some cycle's snapshots to look at individual sections
 #    gini_indexes_all_bakers_snapshot = compute_gini_snapshot_rolls(start, end)
 #    x_data = list(range(start, end + 1))
 #    y_data = gini_indexes_all_bakers_snapshot
@@ -396,19 +396,47 @@ def plot_lorenz_curve(arr):
     plt.close()
 
 
-def plot_expectational_fairness(initial_reward, rewards, start, end):
+def compute_fractions(start, end):
+    """Currently works for 2 cycles and 1 specific baker -> make it work for all bakers and all cycles
+    current baker: 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9' """
+    # initial_rewards = []
+    # init_rewards = cur.execute('select total_income from income_table where cycle = 150').fetchall()
+    # for init_rew in init_rewards:
+    #     initial_rewards.append(init_rew)
+    initial_reward = cur.execute('select total_income from income_table where cycle = 0 and '
+                                 'address="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"').fetchall()[0][0]
+    initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
+    total_rewards_150 = \
+    cur.execute('select sum(total_income) from income_table where cycle = %s' % start).fetchall()[0][0]
+    total_rewards_151 = cur.execute('select sum(total_income) from income_table where cycle = %s' % end).fetchall()[0][
+        0]
+    rewards_150 = cur.execute('select total_income from income_table where cycle = %s and '
+                              'address="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"' % start).fetchall()[0][0]
+    rewards_151 = cur.execute('select total_income from income_table where cycle = %s and '
+                              'address="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"' % end).fetchall()[0][0]
+    fractions = [rewards_150 / total_rewards_150,
+                 rewards_151 / total_rewards_151]  # fraction of rewards at cycle 150 and
+    # cycle 151 (gamma_a), array of the rewards_x/total_rewards_x for x cycles
+    n = 2  # number of cycles
+    expected = [initial_reward / initial_total] * n
+    return fractions, expected
+
+
+def plot_expectational_fairness(start, end):
+    # TODO: make this work for multiple cycles and multiple bakers
     """the expectation of the fraction of the reward that baker A receives of the total reward should be equal to his
     initial resource a --> on x axis we have the number of blocks/cycles and on the y axis the fraction of the total
-    reward, and another line x_a for the initital resource, start: startcycle/startblock, end: endcycle/endblock"""
+    reward, and another line x_a for the initial resource, start: startcycle/startblock, end: endcycle/endblock
+    currently used address: address = 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9'"""
     x_data = list((range(start, end + 1)))
-    y_data = rewards/rewards  # TODO: --> make this -> take an array of reward at cycle x and the
-    # reward of baker A at cycle x
-    n = len(rewards)
-    x2_data = [initial_reward] * n
-    plt.plot(x_data, y_data, label='Fraction of resource')
-    plt.plot(x2_data, y_data, label='Initial resource')
+    y_data, y2_data = compute_fractions(start, end)
+    plt.plot(x_data, y_data, label='Fraction of resource actual')
+    plt.plot(x_data, y2_data, label='Fraction of initial resource (expected)')
+    plt.legend()
+    plt.xlabel('Cycle')
+    plt.ylabel('Fraction of reward')
     plt.title('Expectational Fairness')
-    plt.savefig('images/expectational_fairness')
+    plt.savefig('images/expectational_fairness_' + str(start) + '_' + str(end) + '.png')
     plt.close()
 
 
@@ -422,7 +450,7 @@ def simulate_robust_fairness(address, epsilon, total_rewards, delta=0.9):
     # TODO: find out which value of epsilon is correct
     reward_baker_a = cur.execute('SELECT total_balance FROM bakers WHERE address = %s' % address).fetchall()[0]
     # TODO: this reward data here may come from the income table or archive data later
-    gamma_a = reward_baker_a/total_rewards
+    gamma_a = reward_baker_a / total_rewards
     # TODO: which values of epsilon and delta do we have?
 
 
@@ -454,7 +482,7 @@ if __name__ == '__main__':
 
     # Snapshot rolls gini index plots
     # TODO: check this does not seem to give a reasonable gini for the rewards -> DEBUG -> TOO many snapshots
-    #for start, end in zip(start_cycles, end_cycles):
+    # for start, end in zip(start_cycles, end_cycles):
     #    plot_snapshots_rolls_gini_index(start, end)
 
     # TODO: fairness measure -> in a cycle compare proportion of rolls and proportion of rewards -> define an "ok
@@ -484,14 +512,19 @@ if __name__ == '__main__':
     print('Theil index redundancy', redundancy)
     print('Theil index inequality', inequality)
 
-    plot_income_rolls_gini_index(150, 200)  # TODO: just choose a fraction to test it
-    plot_income_rolls_gini_index(150, 350)
+    # individual eras
+    start_cycles = [0, 161, 208, 271, 326]
+    end_cycles = [160, 207, 270, 325, 397]
+    for start, end in zip(start_cycles, end_cycles):
+        plot_income_rolls_gini_index(start, end)
+        plot_income_rewards_gini_index(start, end)
+    # whole spectrum
     plot_income_rolls_gini_index(0, 390)
-
-    plot_income_rewards_gini_index(150, 200)
-    plot_income_rewards_gini_index(150, 350)
     plot_income_rewards_gini_index(0, 390)
 
+    # TODO: make plot expecational fairness (first only for one baker) and one specific cycle 150 -> for all bakers,
+    #  all cycles
+    plot_expectational_fairness(150, 151)
     # Close connection
     con.close()
 
