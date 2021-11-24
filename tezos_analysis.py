@@ -452,7 +452,7 @@ def compute_fractions(start, end):
 
 
 def plot_expectational_fairness(start, end):
-    # TODO: make this work for multiple cycles and multiple bakers
+    # TODO: make this work for multiple multiple bakers
     """the expectation of the fraction of the reward that baker A receives of the total reward should be equal to his
     initial resource a --> on x axis we have the number of blocks/cycles and on the y axis the fraction of the total
     reward, and another line x_a for the initial resource, start: startcycle/startblock, end: endcycle/endblock
@@ -466,6 +466,29 @@ def plot_expectational_fairness(start, end):
     plt.ylabel('Fraction of reward')
     plt.title('Expectational Fairness')
     plt.savefig('images/expectational_fairness_' + str(start) + '_' + str(end) + '.png')
+    plt.close()
+
+
+def compute_difference(actual, expected):
+    """Computes absolute difference array of the actual and expected values"""
+    differences = []
+    n = len(actual)
+    for c in range(0, n):
+        diff_c = np.abs(actual[c]-expected[c])
+        differences.append(diff_c)
+    return differences
+
+
+def plot_expectational_fairness_difference(start, end):
+    x_data = list((range(start, end + 1)))
+    actual, expected = compute_fractions(start, end)
+    y_data = compute_difference(actual, expected)
+    # y_data is absolute difference of expected and actual value
+    plt.plot(x_data, y_data)
+    plt.xlabel('Cycle')
+    plt.ylabel('Absolute difference of actual and expected reward fraction')
+    plt.title('Expectational Fairness')
+    plt.savefig('images/expectational_fairness_difference_' + str(start) + '_' + str(end) + '.png')
     plt.close()
 
 
@@ -553,10 +576,13 @@ if __name__ == '__main__':
 
     # TODO: make plot expecational fairness first for only 1 specific baker -> make it work for all bakers
     plot_expectational_fairness(0, 396)
-    start_cycles = [0, 161, 208, 271, 326]
-    end_cycles = [160, 207, 270, 325, 397]
     for start, end in zip(start_cycles, end_cycles):
         plot_expectational_fairness(start, end)
+
+    # expectational fairness with absolute difference of expected and actual reward difference on y axis
+    plot_expectational_fairness_difference(0, 396)
+    for start, end in zip(start_cycles, end_cycles):
+        plot_expectational_fairness_difference(start, end)
 
     # TODO: make plot & implementation for robust fairness
 
