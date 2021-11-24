@@ -396,46 +396,20 @@ def plot_lorenz_curve(arr):
     plt.close()
 
 
-def compute_fractions_old(start, end):
-    """Currently works for 2 cycles and 1 specific baker -> make it work for all bakers and all cycles
-    current baker: 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9' """
-
-    initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
-    initial_reward = cur.execute('select total_income from income_table where cycle = 0 and '
-                                 'address="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"').fetchall()[0][0]
-    initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
-    total_rewards_150 = \
-        cur.execute('select sum(total_income) from income_table where cycle = %s' % start).fetchall()[0][0]
-    total_rewards_151 = cur.execute('select sum(total_income) from income_table where cycle = %s' % end).fetchall()[0][
-        0]
-    rewards_150 = cur.execute('select total_income from income_table where cycle = %s and '
-                              'address="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"' % start).fetchall()[0][0]
-    rewards_151 = cur.execute('select total_income from income_table where cycle = %s and '
-                              'address="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"' % end).fetchall()[0][0]
-    fractions = [rewards_150 / total_rewards_150,
-                 rewards_151 / total_rewards_151]  # fraction of rewards at cycle 150 and
-    # cycle 151 (gamma_a), array of the rewards_x/total_rewards_x for x cycles
-    n = 2  # number of cycles
-    expected = [initial_reward / initial_total] * n
-    return fractions, expected
-
-
-def compute_fractions(start, end):
+def compute_fractions(start, end, baker):
     """Currently works for 2 cycles and 1 specific baker -> make it work for all bakers and all cycles
     current baker: 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9' """
     rewards = []
     # TODO: try this also out for all addresses -> drop the where address= "x" part
     rews = cur.execute('select total_income from income_table where address '
-                       '="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9" and cycle >= %s and cycle <= %s' % (
+                       '="%s" and cycle >= %s and cycle <= %s' % (baker,
                        start, end)).fetchall()
     for init_rew in rews:
         rewards.append(init_rew[0])
     n = len(rewards)
     initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
-    initial_totals = [initial_total] * n
     initial_reward = cur.execute('select total_income from income_table where cycle = 0 and '
-                                 'address="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"').fetchall()[0][0]
-    initial_rewards = [initial_reward] * n
+                                 'address="%s"' % baker).fetchall()[0][0]
 
     total_rewards = []  # total_rewards at cycle x for all bakers
     for c in range(start, end+1):
@@ -451,14 +425,14 @@ def compute_fractions(start, end):
     return fractions, expected
 
 
-def plot_expectational_fairness(start, end):
+def plot_expectational_fairness(start, end, baker):
     # TODO: make this work for multiple multiple bakers
     """the expectation of the fraction of the reward that baker A receives of the total reward should be equal to his
     initial resource a --> on x axis we have the number of blocks/cycles and on the y axis the fraction of the total
     reward, and another line x_a for the initial resource, start: startcycle/startblock, end: endcycle/endblock
     currently used address: address = 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9'"""
     x_data = list((range(start, end + 1)))
-    y_data, y2_data = compute_fractions(start, end)
+    y_data, y2_data = compute_fractions(start, end, baker)
     plt.plot(x_data, y_data, label='Fraction of resource actual')
     plt.plot(x_data, y2_data, label='Fraction of initial resource (expected)')
     plt.legend()
@@ -479,9 +453,9 @@ def compute_difference(actual, expected):
     return differences
 
 
-def plot_expectational_fairness_difference(start, end):
+def plot_expectational_fairness_difference(start, end, baker):
     x_data = list((range(start, end + 1)))
-    actual, expected = compute_fractions(start, end)
+    actual, expected = compute_fractions(start, end, baker)
     y_data = compute_difference(actual, expected)
     # y_data is absolute difference of expected and actual value
     plt.plot(x_data, y_data)
@@ -492,18 +466,17 @@ def plot_expectational_fairness_difference(start, end):
     plt.close()
 
 
-def simulate_robust_fairness(address, epsilon, total_rewards, delta=0.9):
+def simulate_robust_fairness(address, epsilon, delta, cycle):
     """Robust fairness Pr((1-epsilon)*a <= gamma_a <= (1+epsilon)*a) <= (1-delta)
     gamma_a: fraction that baker A receives of total reward,
     a: initial resource of Baker A
     address: address of baker A
     epsilon: between 0 and 1
     delta: >=1"""
-    # TODO: find out which value of epsilon is correct
-    reward_baker_a = cur.execute('SELECT total_balance FROM bakers WHERE address = %s' % address).fetchall()[0]
-    # TODO: this reward data here may come from the income table or archive data later
-    gamma_a = reward_baker_a / total_rewards
-    # TODO: which values of epsilon and delta do we have?
+    # TODO: first only look at it for a specific address and a specific cycle -> later more general
+    # TODO: set delta, see which epsilon we get -> look at each delta, search largest epsilon for which the equation
+    #  is true
+    reward_baker_a = cur.execute('SELECT total_balance FROM bakers WHERE address ="%s"' % address).fetchall()[0]
 
 
 if __name__ == '__main__':
@@ -574,17 +547,21 @@ if __name__ == '__main__':
     plot_income_rolls_gini_index(0, 390)
     plot_income_rewards_gini_index(0, 390)
 
+    baker = "tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"
     # TODO: make plot expecational fairness first for only 1 specific baker -> make it work for all bakers
-    plot_expectational_fairness(0, 396)
+    plot_expectational_fairness(0, 396, baker)
     for start, end in zip(start_cycles, end_cycles):
-        plot_expectational_fairness(start, end)
+        plot_expectational_fairness(start, end, baker)
 
     # expectational fairness with absolute difference of expected and actual reward difference on y axis
-    plot_expectational_fairness_difference(0, 396)
+    plot_expectational_fairness_difference(0, 396, baker)
     for start, end in zip(start_cycles, end_cycles):
-        plot_expectational_fairness_difference(start, end)
+        plot_expectational_fairness_difference(start, end, baker)
 
     # TODO: make plot & implementation for robust fairness
+    epsilon = 0.5  # find this
+    delta = 0.9  # set this
+    simulate_robust_fairness(baker, epsilon, delta, 150)
 
     # Close connection
     con.close()
