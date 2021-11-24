@@ -396,18 +396,16 @@ def plot_lorenz_curve(arr):
     plt.close()
 
 
-def compute_fractions(start, end):
+def compute_fractions_old(start, end):
     """Currently works for 2 cycles and 1 specific baker -> make it work for all bakers and all cycles
     current baker: 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9' """
-    # initial_rewards = []
-    # init_rewards = cur.execute('select total_income from income_table where cycle = 150').fetchall()
-    # for init_rew in init_rewards:
-    #     initial_rewards.append(init_rew)
+
+    initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
     initial_reward = cur.execute('select total_income from income_table where cycle = 0 and '
                                  'address="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"').fetchall()[0][0]
     initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
     total_rewards_150 = \
-    cur.execute('select sum(total_income) from income_table where cycle = %s' % start).fetchall()[0][0]
+        cur.execute('select sum(total_income) from income_table where cycle = %s' % start).fetchall()[0][0]
     total_rewards_151 = cur.execute('select sum(total_income) from income_table where cycle = %s' % end).fetchall()[0][
         0]
     rewards_150 = cur.execute('select total_income from income_table where cycle = %s and '
@@ -419,6 +417,37 @@ def compute_fractions(start, end):
     # cycle 151 (gamma_a), array of the rewards_x/total_rewards_x for x cycles
     n = 2  # number of cycles
     expected = [initial_reward / initial_total] * n
+    return fractions, expected
+
+
+def compute_fractions(start, end):
+    """Currently works for 2 cycles and 1 specific baker -> make it work for all bakers and all cycles
+    current baker: 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9' """
+    rewards = []
+    # TODO: try this also out for all addresses -> drop the where address= "x" part
+    rews = cur.execute('select total_income from income_table where address '
+                       '="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9" and cycle >= %s and cycle <= %s' % (
+                       start, end)).fetchall()
+    for init_rew in rews:
+        rewards.append(init_rew[0])
+    n = len(rewards)
+    initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
+    initial_totals = [initial_total] * n
+    initial_reward = cur.execute('select total_income from income_table where cycle = 0 and '
+                                 'address="tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"').fetchall()[0][0]
+    initial_rewards = [initial_reward] * n
+
+    total_rewards = []  # total_rewards at cycle x for all bakers
+    for c in range(start, end+1):
+        rew_c = cur.execute('select sum(total_income) from income_table where cycle = %s' % c).fetchall()[0][0]
+        total_rewards.append(rew_c)
+
+    # Fractions: array of length n, where each entry divides rewards[i]/total_rewards[i] for i = 1 to n
+    fractions = []
+    for c in range(0, n):
+        frac_c = rewards[c]/total_rewards[c]
+        fractions.append(frac_c)
+    expected = [initial_reward/initial_total] * n
     return fractions, expected
 
 
@@ -522,9 +551,15 @@ if __name__ == '__main__':
     plot_income_rolls_gini_index(0, 390)
     plot_income_rewards_gini_index(0, 390)
 
-    # TODO: make plot expecational fairness (first only for one baker) and one specific cycle 150 -> for all bakers,
-    #  all cycles
-    plot_expectational_fairness(150, 151)
+    # TODO: make plot expecational fairness first for only 1 specific baker -> make it work for all bakers
+    plot_expectational_fairness(0, 396)
+    start_cycles = [0, 161, 208, 271, 326]
+    end_cycles = [160, 207, 270, 325, 397]
+    for start, end in zip(start_cycles, end_cycles):
+        plot_expectational_fairness(start, end)
+
+    # TODO: make plot & implementation for robust fairness
+
     # Close connection
     con.close()
 
