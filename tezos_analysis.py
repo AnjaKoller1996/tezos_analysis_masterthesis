@@ -267,7 +267,7 @@ def compute_fractions(start, end, baker):
     # TODO: try this also out for all addresses -> drop the where address= "x" part
     rews = cur.execute('select total_income from income_table where address '
                        '="%s" and cycle >= %s and cycle <= %s' % (baker,
-                       start, end)).fetchall()
+                                                                  start, end)).fetchall()
     for init_rew in rews:
         rewards.append(init_rew[0])
     n = len(rewards)
@@ -276,21 +276,17 @@ def compute_fractions(start, end, baker):
                                  'address="%s"' % baker).fetchall()[0][0]
 
     total_rewards = []  # total_rewards at cycle x for all bakers
-    for c in range(start, end+1):
+    for c in range(start, end + 1):
         rew_c = cur.execute('select sum(total_income) from income_table where cycle = %s' % c).fetchall()[0][0]
         total_rewards.append(rew_c)
 
     # Fractions: array of length n, where each entry divides rewards[i]/total_rewards[i] for i = 1 to n
     fractions = []
     for c in range(0, n):
-        frac_c = rewards[c]/total_rewards[c]
+        frac_c = rewards[c] / total_rewards[c]
         fractions.append(frac_c)
-    expected = [initial_reward/initial_total] * n
+    expected = [initial_reward / initial_total] * n
     return fractions, expected
-
-
-def plot_expectational_fairness_all_baker_all_cycles():
-    """TODO: """
 
 
 def plot_expectational_fairness(start, end, baker):
@@ -316,9 +312,34 @@ def compute_difference(actual, expected):
     differences = []
     n = len(actual)
     for c in range(0, n):
-        diff_c = np.abs(actual[c]-expected[c])
+        diff_c = np.abs(actual[c] - expected[c])
         differences.append(diff_c)
     return differences
+
+
+def compute_fairness_percentage(baker):
+    # actuals = []  # percentage of fractions of actual reward/total reward for every cycle
+    # expecteds = []  # percentage of fractions of expected reward/total reward for cycle
+    actuals, expecteds = compute_fractions(0, 400, baker)
+    percentages = []
+    for i in range(0, 400):
+        percent_i = actuals[i]/expecteds[i]
+        percentages.append(percent_i)
+    return percentages
+
+
+def plot_expectational_fairness_all_bakers_cycles(start=0, end=400):
+    """Plot expectational fairness  for all bakers and cycles"""
+    x_data = list((range(start, end)))
+    # TODO: compute this for all bakers and have multiple y_data !!
+    y_data = compute_fairness_percentage(baker='tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9')
+    y2_data = compute_fairness_percentage(baker='tz3bvNMQ95vfAYtG8193ymshqjSvmxiCUuR5')
+    plt.plot(x_data, y_data, '.', color='black')
+    plt.plot(x_data, y2_data, '.', color='black')
+    plt.xlabel('Cycle')
+    plt.ylabel('Absolute reward/Expected reward')
+    plt.title('Expectational Fairness for all cycles and all bakers')
+    plt.savefig('images/expectational_fairness_allbakers_allcycles.png')
 
 
 def plot_expectational_fairness_difference(start, end, baker):
@@ -330,7 +351,7 @@ def plot_expectational_fairness_difference(start, end, baker):
     plt.xlabel('Cycle')
     plt.ylabel('Absolute difference of actual and expected reward fraction')
     plt.title('Expectational Fairness')
-    plt.savefig('images/expectational_fairness_difference_' + str(start) + '_' + str(end) + '_baker_' + baker +'.png')
+    plt.savefig('images/expectational_fairness_difference_' + str(start) + '_' + str(end) + '_baker_' + baker + '.png')
     plt.close()
 
 
@@ -349,7 +370,7 @@ def plot_robust_fairness(address, cycle):
     Epsilons = np.linspace(0, 1, 100)
 
     # initial_rewards a
-    initial_rewards = []     # list with initial income for all the bakers
+    initial_rewards = []  # list with initial income for all the bakers
     initial_reward = cur.execute('select total_income from income_table where cycle = 0').fetchall()
     for c in range(0, len(initial_reward)):
         rew_c = cur.execute('select total_income from income_table where cycle = 0').fetchall()[c][0]
@@ -357,7 +378,7 @@ def plot_robust_fairness(address, cycle):
     initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
     initial_stakes = []
     for i in initial_rewards:
-        init_stake = i/initial_total
+        init_stake = i / initial_total
         initial_stakes.append(init_stake)
 
     # fractions gamma_a
@@ -370,7 +391,7 @@ def plot_robust_fairness(address, cycle):
     fractions = []
     total_reward = cur.execute('select sum(total_income) from income_table where cycle=%s' % cycle).fetchall()[0][0]
     for r in rewards_array:
-        fraction_r = r/total_reward
+        fraction_r = r / total_reward
         fractions.append(fraction_r)
 
     # convert initial_rewards and fractions to float array
@@ -379,11 +400,11 @@ def plot_robust_fairness(address, cycle):
 
     for idx, delta in enumerate(Deltas):
         for eps in Epsilons:
-            low_eps = (1-eps)*initial_stakes <= fractions
-            high_eps = fractions <= (1+eps)*initial_stakes
+            low_eps = (1 - eps) * initial_stakes <= fractions
+            high_eps = fractions <= (1 + eps) * initial_stakes
             Freq = low_eps * high_eps
-            Pr = sum(Freq/len(fractions))
-            if Pr >= 1-delta:
+            Pr = sum(Freq / len(fractions))
+            if Pr >= 1 - delta:
                 EPS[idx] = eps
                 break
     print('EPS', EPS)
@@ -461,8 +482,10 @@ if __name__ == '__main__':
     # Robust fairness (we fix delta and a specific cycle and find epsilon)
     plot_robust_fairness(baker, 1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
     plot_robust_fairness(baker, 5)
-    # plot_robust_fairness(baker, 150) # cycle 150 # TODO: take only the bakers that are always active -> not possible to compare as more bakers are there
-    # plot_robust_fairness(baker, 200)
+    # plot_robust_fairness(baker, 150) # TODO: take only the bakers that are always active -> not
+    #  possible to compare as more bakers are there plot_robust_fairness(baker, 200)
+
+    plot_expectational_fairness_all_bakers_cycles()
 
     # Close connection
     con.close()
