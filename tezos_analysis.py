@@ -27,6 +27,14 @@ def get_baker_addresses():
     return baker_address_list
 
 
+def get_income_bakers():
+    baker_addresses = cur.execute('SELECT DISTINCT(address) FROM income_table').fetchall()
+    baker_address_list = []
+    for add in baker_addresses:
+        baker_address_list.append(add[0])
+    return baker_address_list
+
+
 def get_baker_addresses_from_income_table():
     baker_addresses = cur.execute('SELECT DISTINCT(address) FROM income_table').fetchall()
     baker_address_list = []
@@ -281,6 +289,10 @@ def compute_fractions(start, end, baker):
     return fractions, expected
 
 
+def plot_expectational_fairness_all_baker_all_cycles():
+    """TODO: """
+
+
 def plot_expectational_fairness(start, end, baker):
     # TODO: make this work for multiple multiple bakers
     """the expectation of the fraction of the reward that baker A receives of the total reward should be equal to his
@@ -322,17 +334,55 @@ def plot_expectational_fairness_difference(start, end, baker):
     plt.close()
 
 
-def simulate_robust_fairness(address, epsilon, delta, cycle):
+def plot_robust_fairness(address, cycle):
     """Robust fairness Pr((1-epsilon)*a <= gamma_a <= (1+epsilon)*a) <= (1-delta)
+    Fix delta, find largest epsilon EPS for which above equation is true
     gamma_a: fraction that baker A receives of total reward,
     a: initial resource of Baker A
     address: address of baker A
     epsilon: between 0 and 1
-    delta: >=1"""
-    # TODO: first only look at it for a specific address and a specific cycle -> later more general
-    # TODO: set delta, see which epsilon we get -> look at each delta, search largest epsilon for which the equation
-    #  is true
-    reward_baker_a = cur.execute('SELECT total_balance FROM bakers WHERE address ="%s"' % address).fetchall()[0]
+    delta: >=1
+    Version 1 cycle all bakers"""
+
+    EPS = np.empty([100])
+    Deltas = np.linspace(0.18, 1, 100)  # take deltas which are higher than 0.18 as there the fluctuations are lower
+    Epsilons = np.linspace(0, 1, 100)
+    # TODO: initial is probably there where the baker first occured -> not cycle 0
+    # initial_rewards a
+    initial_rewards = []     # list with initial income for all the bakers
+    initial_reward = cur.execute('select total_income from income_table where cycle = 0').fetchall()
+    for c in range(0, len(initial_reward)):
+        rew_c = cur.execute('select total_income from income_table where cycle = 0').fetchall()[c][0]
+        initial_rewards.append(rew_c)
+    # fractions gamma_a
+    fractions = []
+    # TODO: take percentages of initial rewards and percentages of fractions !!
+    fraction = cur.execute('select total_income from income_table where cycle=%s' % cycle).fetchall()
+    for f in range(0, len(fraction)):
+        fraction_f = cur.execute('select total_income from income_table where cycle=%s' % cycle).fetchall()[f][0]
+        fractions.append(fraction_f)
+
+    # convert initial_rewards and fractions to float array
+    initial_rewards = np.fromiter(initial_rewards, dtype=float)
+    fractions = np.fromiter(fractions, dtype=float)
+
+    for idx, delta in enumerate(Deltas):
+        for eps in Epsilons:
+            low_eps = (1-eps)*initial_rewards <= fractions
+            high_eps = fractions <= (1+eps)*initial_rewards
+            Freq = low_eps * high_eps
+            Pr = sum(Freq/len(fractions))
+            if Pr >= 1-delta:
+                EPS[idx] = eps
+                break
+    print('EPS', EPS)
+    print("The bakers put " + str(round(sum(initial_rewards), 4) * 100) + "% of the stakes and received " + str(
+        round(sum(fractions), 4) * 100) + "% of the rewards")
+    plt.plot(Deltas, EPS)
+    plt.title('Robust Fairness with fixed delta cycle ' + str(cycle))
+    plt.xlabel('Delta')
+    plt.ylabel('Epsilon')
+    plt.savefig('images/robust_fairness_cycle_' + str(cycle) + '.png')
 
 
 if __name__ == '__main__':
@@ -382,7 +432,7 @@ if __name__ == '__main__':
 
     # Expectational Fairness
     baker = "tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"
-    # TODO: make plot expecational fairness first for only 1 specific baker -> make it work for all bakers
+    # TODO: make plot expectational fairness first for only 1 specific baker -> make it work for all bakers
     plot_expectational_fairness(0, 396, baker)
     for start, end in zip(start_cycles, end_cycles):
         plot_expectational_fairness(start, end, baker)
@@ -392,11 +442,10 @@ if __name__ == '__main__':
     for start, end in zip(start_cycles, end_cycles):
         plot_expectational_fairness_difference(start, end, baker)
 
-    # TODO: make plot & implementation for robust fairness
-    # Robust fairness
-    epsilon = 0.5  # find this
-    delta = 0.9  # set this
-    simulate_robust_fairness(baker, epsilon, delta, 150)
+    # TODO: do the same for rolls? Assumed that the "stake" is the initial reward that the bakers have at cycle 0
+
+    # Robust fairness (we fix delta and a specific cycle and find epsilon)
+    plot_robust_fairness(baker, 1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
 
     # Close connection
     con.close()
