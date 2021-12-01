@@ -355,7 +355,7 @@ def plot_expectational_fairness_difference(start, end, baker):
     plt.close()
 
 
-def plot_robust_fairness(address, cycle):
+def plot_robust_fairness(cycle):
     """Robust fairness Pr((1-epsilon)*a <= gamma_a <= (1+epsilon)*a) <= (1-delta)
     Fix delta, find largest epsilon EPS for which above equation is true
     gamma_a: fraction that baker A receives of total reward,
@@ -366,7 +366,7 @@ def plot_robust_fairness(address, cycle):
     Version 1 cycle all bakers"""
 
     EPS = np.empty([100])
-    Deltas = np.linspace(0.2, 1, 100)  # take deltas which are higher than 0.18 as there the fluctuations are lower
+    Deltas = np.linspace(0, 1, 100)  # take deltas which are higher than 0.18 as there the fluctuations are lower
     Epsilons = np.linspace(0, 1, 100)
 
     # initial_rewards a
@@ -388,7 +388,7 @@ def plot_robust_fairness(address, cycle):
         fraction_f = cur.execute('select total_income from income_table where cycle=%s' % cycle).fetchall()[f][0]
         rewards_array.append(fraction_f)
 
-    fractions = []
+    fractions = [] # reward at cycle x divided by total_reward at cycle_x
     total_reward = cur.execute('select sum(total_income) from income_table where cycle=%s' % cycle).fetchall()[0][0]
     for r in rewards_array:
         fraction_r = r / total_reward
@@ -398,23 +398,26 @@ def plot_robust_fairness(address, cycle):
     initial_stakes = np.fromiter(initial_stakes, dtype=float)
     fractions = np.fromiter(fractions, dtype=float)
 
+    idxes = [] # need to keep track of this in order to see if there are deltas for which no eps satisfy the equation
     for idx, delta in enumerate(Deltas):
         for eps in Epsilons:
             low_eps = (1 - eps) * initial_stakes <= fractions
             high_eps = fractions <= (1 + eps) * initial_stakes
             Freq = low_eps * high_eps
-            Pr = sum(Freq / len(fractions))
+            Pr = sum(Freq)/len(fractions)
             if Pr >= 1 - delta:
                 EPS[idx] = eps
+                idxes.append(idx)
                 break
     print('EPS', EPS)
     print("The bakers put " + str(round(sum(initial_stakes), 4) * 100) + "% of the stakes and received " + str(
         round(sum(fractions), 4) * 100) + "% of the rewards")
-    plt.plot(Deltas, EPS)
+    plt.plot(Deltas[idxes[0]:], EPS[idxes[0]:])
     plt.title('Robust Fairness with fixed delta cycle ' + str(cycle))
     plt.xlabel('Delta')
     plt.ylabel('Epsilon')
-    plt.savefig('images/robust_fairness_delta_bigger02_cycle_' + str(cycle) + '.png')
+    plt.savefig('images/robust_fairness_cycle_' + str(cycle) + '.png')
+    plt.close()
 
 
 if __name__ == '__main__':
@@ -480,11 +483,12 @@ if __name__ == '__main__':
     # TODO: do the same for rolls? Assumed that the "stake" is the initial reward that the bakers have at cycle 0
 
     # Robust fairness (we fix delta and a specific cycle and find epsilon)
-    plot_robust_fairness(baker, 1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
-    plot_robust_fairness(baker, 5)
-    # plot_robust_fairness(baker, 150) # TODO: take only the bakers that are always active -> not
+    plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
+    plot_robust_fairness(5)
+    # plot_robust_fairness(150) # TODO: take only the bakers that are always active -> not
     #  possible to compare as more bakers are there plot_robust_fairness(baker, 200)
 
+    # TODO: try this expectational fairness plot with a different baker, for example baker_2
     plot_expectational_fairness_all_bakers_cycles()
 
     # Close connection
