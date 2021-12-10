@@ -384,6 +384,34 @@ def compute_fairness_percentage_average_one_cycle(cycle):
     return avg_percent
 
 
+# TODO: clean this up and move this two plots together
+def compute_fairness_percentage_one_cycle(cycle, x):
+    fractions, expected = compute_fraction_all_bakers_one_cycle(cycle)
+    n = len(fractions)  # number of bakers
+    percentages = []  # contains percentages for all the bakers in a specific cycle
+    for p in range(0, n):
+        percent_p = fractions[p] / expected[p]
+        percentages.append(percent_p)
+    x_percent = int(np.ceil(len(percentages)/(x*100)))
+    percentages = np.asarray(percentages)
+    highest_x_percentages = np.sort(percentages)[(len(percentages)-x_percent):]
+    highest_x_percent = np.mean(highest_x_percentages)  # mean over the highest 90% of the bakers
+    lowest_x_percentages = np.sort(percentages)[:(len(percentages)-x_percent)]
+    lowest_x_percent = np.mean(lowest_x_percentages)
+    return highest_x_percent, lowest_x_percent
+
+
+def compute_fairness_highest_x_percent_all_cycles(start, end, x):
+    percentages_highest = []
+    percentages_lowest = []
+    num_cycles = end-start
+    for c in range(0, num_cycles):
+        highest_x, lowest_x = compute_fairness_percentage_one_cycle(c, x)
+        percentages_highest.append(highest_x)
+        percentages_lowest.append(lowest_x)
+    return percentages_highest, percentages_lowest
+
+
 def compute_fairness_percentages_average_all_cycles(start, end):
     avg_percentages = []
     num_cycles = end-start
@@ -406,7 +434,6 @@ def compute_fairness_percentage(baker):
 
 def plot_expectational_fairness_all_bakers_cycles_average(start, end):
     x_data = list((range(start, end)))
-    # TODO: make this for all bakers average, for all bakers and take highest 90% and all bakers lowest 25%
     y_data = compute_fairness_percentages_average_all_cycles(start, end)
     plt.plot(x_data, y_data, '.', color='black')
     plt.xlabel('Cycle')
@@ -416,16 +443,40 @@ def plot_expectational_fairness_all_bakers_cycles_average(start, end):
     plt.close()
 
 
-def plot_expectational_fairness_all_bakers_cycles(start=0, end=400):
-    """Plot expectational fairness  for all bakers and cycles"""
+def plot_expectational_fairness_all_bakers_cycles_highest_x_percent(start, end, x):
     x_data = list((range(start, end)))
-    # TODO: compute this for all bakers and have multiple y_data !!
-    # TODO: make this for all bakers average, for all bakers and take highest 90% and all bakers lowest 25%
+    y_data_highest, y_data_lowest = compute_fairness_highest_x_percent_all_cycles(start, end, x)
+    plt.plot(x_data, y_data_highest, '.', color='black', label='highest ' + str(x) + 'percent')
+    plt.plot(x_data, y_data_lowest, '.', color='blue', label='lowest ' + str(x) + 'percent')
+    plt.xlabel('Cycle')
+    plt.ylabel('Absolute reward/Expected reward')
+    plt.legend()
+    plt.title('Expectational Fairness from cycle ' + str(start) + ' to ' + str(end) + ' highest ' + str(x) + ' percent')
+    plt.savefig('images/expectational_fairness_cycles_' + str(start) + '_' + str(end) + '_highest_' + str(x) + '.png')
+    plt.close()
+
+
+def plot_expectational_fairness_all_bakers_cycles(start=0, end=400):
+    """Plot expectational fairness  for all bakers and cycles, here version with 8 bakers"""
+    x_data = list((range(start, end)))
     y_data = compute_fairness_percentage(baker='tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9')
     y2_data = compute_fairness_percentage(baker='tz3bvNMQ95vfAYtG8193ymshqjSvmxiCUuR5')
-    plt.plot(x_data, y_data, '.', color='black')
-    plt.plot(x_data, y2_data, '.', color='black')
+    y3_data = compute_fairness_percentage(baker='tz3RB4aoyjov4KEVRbuhvQ1CKJgBJMWhaeB8')
+    y4_data = compute_fairness_percentage(baker='tz3bTdwZinP8U1JmSweNzVKhmwafqWmFWRfk')
+    y5_data = compute_fairness_percentage(baker='tz3NExpXn9aPNZPorRE4SdjJ2RGrfbJgMAaV')
+    y6_data = compute_fairness_percentage(baker='tz3UoffC7FG7zfpmvmjUmUeAaHvzdcUvAj6r')
+    y7_data = compute_fairness_percentage(baker='tz3WMqdzXqRWXwyvj5Hp2H7QEepaUuS7vd9K')
+    y8_data = compute_fairness_percentage(baker='tz3VEZ4k6a4Wx42iyev6i2aVAptTRLEAivNN')
+    plt.plot(x_data, y_data, '.', color='black', label='baker1')
+    plt.plot(x_data, y2_data, '.', color='blue', label='baker2')
+    plt.plot(x_data, y3_data, '.', color='green', label='baker3')
+    plt.plot(x_data, y4_data, '.', color='orange', label='baker4')
+    plt.plot(x_data, y5_data, '.', color='red', label='baker5')
+    plt.plot(x_data, y6_data, '.', color='grey', label='baker6')
+    plt.plot(x_data, y7_data, '.', color='purple', label='baker7')
+    plt.plot(x_data, y8_data, '.', color='yellow', label='baker8')
     plt.xlabel('Cycle')
+    plt.legend()
     plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness for all cycles and all bakers')
     plt.savefig('images/expectational_fairness_allbakers_allcycles.png')
@@ -582,6 +633,11 @@ if __name__ == '__main__':
     plot_expectational_fairness_all_bakers_cycles()
     plot_expectational_fairness_all_bakers_cycles_average(0, 398)
     plot_expectational_fairness_all_bakers_cycles_average(0, 8)
+
+    # highest x percent
+    plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 8, 0.1)
+    plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 8, 0.2)
+    plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 398,0.1)
 
     # Close connection
     con.close()
