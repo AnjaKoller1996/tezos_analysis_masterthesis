@@ -456,7 +456,26 @@ def plot_expectational_fairness_all_bakers_cycles_highest_x_percent(start, end, 
     plt.close()
 
 
-def plot_expectational_fairness_all_bakers_cycles(start=0, end=400):
+def plot_expecational_fairness_all_bakers_overview(start, end, lowest_x, lowest_x2, highest_x):
+    y1_highest, y1_lowest = compute_fairness_highest_x_percent_all_cycles(start, end, highest_x)
+    y2_highest, y2_lowest = compute_fairness_highest_x_percent_all_cycles(start, end, lowest_x)
+    y3_highest, y3_lowest = compute_fairness_highest_x_percent_all_cycles(start, end, lowest_x2)
+    x_data = list((range(start, end)))
+    y1_data = y1_highest
+    plt.plot(x_data, y1_data, '.', color='black', label='highest ' + str(highest_x)+' percent')
+    y2_data = y2_lowest
+    plt.plot(x_data, y2_data, '.', color='green', label='highest ' + str(lowest_x) + ' percent')
+    y3_data = y3_lowest
+    plt.plot(x_data, y3_data, '.', color='blue', label='lowest ' + str(lowest_x2) + ' percent')
+    y4_data = compute_fairness_percentages_average_all_cycles(start, end)
+    plt.plot(x_data, y4_data, '.', color='red', label='average')
+    plt.legend()
+    plt.title('Expectational Fairness from cycle ' + str(start) + ' to ' + str(end))
+    plt.savefig('images/expectational_fairness_cycles' + str(start) + '_' + str(end) + '_overview' + '.png')
+    plt.close()
+
+
+def plot_expectational_fairness_all_bakers_cycles(start, end):
     """Plot expectational fairness  for all bakers and cycles, here version with 8 bakers"""
     x_data = list((range(start, end)))
     y_data = compute_fairness_percentage(baker='tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9')
@@ -629,15 +648,16 @@ if __name__ == '__main__':
     # plot_robust_fairness(150) # TODO: take only the bakers that are always active -> not
     #  possible to compare as more bakers are there plot_robust_fairness(baker, 200)
 
-    # TODO: try this expectational fairness plot with a different baker, for example baker_2
-    plot_expectational_fairness_all_bakers_cycles()
+    # TODO: try this expectational fairness plot with a different baker, for example baker_2 and take absolute difference values (can go below 0)
     plot_expectational_fairness_all_bakers_cycles_average(0, 398)
     plot_expectational_fairness_all_bakers_cycles_average(0, 8)
 
     # highest x percent
     plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 8, 0.1)
     plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 8, 0.2)
-    plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 398,0.1)
+    plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 398, 0.1)
+    # expectational fairness plot for cycles 0 to 8, with average, highest 30%, lowest 10%, lowest 25%
+    plot_expecational_fairness_all_bakers_overview(0, 8, 0.2, 0.25, 0.3)
 
     # Close connection
     con.close()
