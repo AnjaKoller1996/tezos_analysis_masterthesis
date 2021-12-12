@@ -102,129 +102,6 @@ def compute_reward_era_baker_per_cycle(start, end):
     return avg_reward_per_cycle
 
 
-# plot the rewards standard deviations for the bakers for all cycles
-def plot_reward_standard_deviation_all_cycles():
-    avg_reward_per_cycle_list = get_avg_reward_per_cycle()
-    avg_reward_over_cycles = get_avg_reward_over_cycles()
-    avg_reward_over_cycles_list = [avg_reward_over_cycles] * num_cycles
-    x1_data = cycles  # cycle 1 to 397
-    y1_data = avg_reward_over_cycles_list  # avg rewards ordered by cycle
-    plt.plot(x1_data, y1_data, label='Baseline')
-    # show a line where major protocol upgrades are
-    plt.axvline(160, 0, 1, label='Babylon 2.0', color='red')
-    plt.axvline(208, 0, 1, label='Carthage 2.0', color='red')
-    plt.axvline(271, 0, 1, label='Delphi', color='red')
-    plt.axvline(325, 0, 1, label='Edo', color='red')
-    plt.axvline(355, 0, 1, label='Florence', color='red')
-    plt.axvline(387, 0, 1, label='Granada', color='red')
-    x2_data = cycles
-    y2_data = avg_reward_per_cycle_list  # real rewards per cycle (to see how much it is from the avg)
-    plt.plot(x2_data, y2_data, label='Real rewards')
-    plt.title('Baker Reward deviation from average reward')
-    plt.xlabel('Cycle')
-    plt.ylabel('Reward')
-    plt.legend()
-    plt.savefig('images/Baker_reward_deviation_from_average.png')
-    plt.close()
-
-
-def plot_histogram_5cycles_baker_rewards():
-    num_bakers_above_baseline = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward > '
-                                            '161938.98').fetchone()[0]
-    num_bakers_below_half = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward < '
-                                        '161938.98/2').fetchone()[0]
-    num_bakers_below_quarter = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward < '
-                                           '161938.98/4').fetchone()[0]
-    num_bakers_above_top = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward > '
-                                       '163000').fetchone()[0]
-    x_data = ['below quarter', 'below half', 'above', 'above top']
-    y_data = (num_bakers_below_quarter, num_bakers_below_half, num_bakers_above_baseline, num_bakers_above_top)
-    index = np.arange(len(x_data))
-    bar_width = 0.9
-    plt.bar(index, y_data, bar_width, color="green")
-    plt.xticks(index, x_data)  # labels get centered
-    plt.title('Distribution of reward amounts among bakers')
-    plt.xlabel('How much above or below baseline')
-    plt.ylabel('Number of Bakers')
-    plt.savefig('images/Histogram_5_cycles_baker_rewards.png')
-    plt.close()
-
-
-def plot_gini_indexes_rewards_all_bakers_per_cycle(start, end):
-    gini_indexes_all_bakers_rewards = compute_gini_all_bakers_per_cycle(start, end)
-    y_data_length = len(gini_indexes_all_bakers_rewards)
-    # ensure that x_data and y_data have same length (can be different due to extracting it at different times)
-    x_data = list(range(start, end + 1))
-    y_data = gini_indexes_all_bakers_rewards
-    plt.ylim(0.0, 0.1)  # make it the same scale as the plots for the stakes
-    plt.plot(x_data, y_data)
-    plt.title('Gini indexes rewards from ' + str(start) + ' to ' + str(end) + ' all bakers per cycle')
-    plt.xlabel('Cycles')
-    plt.ylabel('Gini index')
-    plt.savefig('rewards_gini/Gini_indexes_all_bakers_' + str(start) + 'to' + str(end) + '_rewards_per_cycle.png')
-    plt.close()
-
-
-def plot_era_baker_reward(start, end, era_name):
-    """plot rewards per era, i.e. from cycle start to cycle end"""
-    rewards_all_bakers_athens = compute_reward_era_baker_per_cycle(start, end)
-    x_data = list(range(start, end + 1))
-    y_data = rewards_all_bakers_athens
-    plt.plot(x_data, y_data)
-    plt.title('Reward all bakers per cycle in Upgrade Era ' + era_name)
-    plt.xlabel('Cycles (Time)')
-    plt.ylabel('Rewards')
-    plt.savefig('rewards_baker/Reward_all_bakers_per_cycle_' + era_name + '.png')
-    plt.close()
-    return
-
-
-def plot_num_working_bakers_per_cycle():
-    y_data = compute_num_working_bakers_per_cycle_list()
-    x_data = list(range(0, len(y_data)))
-    plt.plot(x_data, y_data)
-    plt.title('Total number of working bakers per cycle')
-    plt.xlabel('Cycles')
-    plt.ylabel('Number of bakers')
-    plt.savefig('images/Total_num_working_bakers_per_cycle.png')
-    plt.close()
-
-
-def plot_num_active_bakers_per_cycle():
-    y_data = compute_num_active_bakers_per_cycle_list()
-    x_data = list(range(0, len(y_data)))
-    plt.plot(x_data, y_data)
-    plt.title('Total number of active bakers per cycle')
-    plt.xlabel('Cycles')
-    plt.ylabel('Number of bakers')
-    plt.savefig('images/Total_num_active_bakers_per_cycle.png')
-    plt.close()
-
-
-def plot_income_rolls_gini_index(start, end):
-    gini_indexes_income_table_rolls = compute_gini_income_table_rolls(start, end)
-    x_data = list(range(start, end + 1))
-    y_data = gini_indexes_income_table_rolls
-    plt.plot(x_data, y_data)
-    plt.title('Gini indexes income_table rolls from cycles ' + str(start) + ' to ' + str(end))
-    plt.xlabel('Cycles')
-    plt.ylabel('Gini index')
-    plt.savefig('images/income_table_rolls_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
-    plt.close()
-
-
-def plot_income_rewards_gini_index(start, end):
-    gini_indexes_income_table_rewards = compute_gini_income_table_rewards(start, end)
-    x_data = list(range(start, end + 1))
-    y_data = gini_indexes_income_table_rewards
-    plt.plot(x_data, y_data)
-    plt.title('Gini indexes income_table rewards from cycles ' + str(start) + ' to ' + str(end))
-    plt.xlabel('Cycles')
-    plt.ylabel('Gini index')
-    plt.savefig('images/income_table_rewards_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
-    plt.close()
-
-
 def compute_fractions(start, end, baker):
     """Currently works for 1 specific baker"""
     rewards = []
@@ -369,6 +246,129 @@ def compute_fairness_percentage(baker):
     return percentages
 
 
+# plot the rewards standard deviations for the bakers for all cycles
+def plot_reward_standard_deviation_all_cycles():
+    avg_reward_per_cycle_list = get_avg_reward_per_cycle()
+    avg_reward_over_cycles = get_avg_reward_over_cycles()
+    avg_reward_over_cycles_list = [avg_reward_over_cycles] * num_cycles
+    x1_data = cycles  # cycle 1 to 397
+    y1_data = avg_reward_over_cycles_list  # avg rewards ordered by cycle
+    plt.plot(x1_data, y1_data, label='Baseline')
+    # show a line where major protocol upgrades are
+    plt.axvline(160, 0, 1, label='Babylon 2.0', color='red')
+    plt.axvline(208, 0, 1, label='Carthage 2.0', color='red')
+    plt.axvline(271, 0, 1, label='Delphi', color='red')
+    plt.axvline(325, 0, 1, label='Edo', color='red')
+    plt.axvline(355, 0, 1, label='Florence', color='red')
+    plt.axvline(387, 0, 1, label='Granada', color='red')
+    x2_data = cycles
+    y2_data = avg_reward_per_cycle_list  # real rewards per cycle (to see how much it is from the avg)
+    plt.plot(x2_data, y2_data, label='Real rewards')
+    plt.title('Baker Reward deviation from average reward')
+    plt.xlabel('Cycle')
+    plt.ylabel('Reward')
+    plt.legend()
+    plt.savefig('images/Baker_reward_deviation_from_average.png')
+    plt.close()
+
+
+def plot_histogram_5cycles_baker_rewards():
+    num_bakers_above_baseline = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward > '
+                                            '161938.98').fetchone()[0]
+    num_bakers_below_half = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward < '
+                                        '161938.98/2').fetchone()[0]
+    num_bakers_below_quarter = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward < '
+                                           '161938.98/4').fetchone()[0]
+    num_bakers_above_top = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward > '
+                                       '163000').fetchone()[0]
+    x_data = ['below quarter', 'below half', 'above', 'above top']
+    y_data = (num_bakers_below_quarter, num_bakers_below_half, num_bakers_above_baseline, num_bakers_above_top)
+    index = np.arange(len(x_data))
+    bar_width = 0.9
+    plt.bar(index, y_data, bar_width, color="green")
+    plt.xticks(index, x_data)  # labels get centered
+    plt.title('Distribution of reward amounts among bakers')
+    plt.xlabel('How much above or below baseline')
+    plt.ylabel('Number of Bakers')
+    plt.savefig('images/Histogram_5_cycles_baker_rewards.png')
+    plt.close()
+
+
+def plot_gini_indexes_rewards_all_bakers_per_cycle(start, end):
+    gini_indexes_all_bakers_rewards = compute_gini_all_bakers_per_cycle(start, end)
+    y_data_length = len(gini_indexes_all_bakers_rewards)
+    # ensure that x_data and y_data have same length (can be different due to extracting it at different times)
+    x_data = list(range(start, end + 1))
+    y_data = gini_indexes_all_bakers_rewards
+    plt.ylim(0.0, 0.1)  # make it the same scale as the plots for the stakes
+    plt.plot(x_data, y_data)
+    plt.title('Gini indexes rewards from ' + str(start) + ' to ' + str(end) + ' all bakers per cycle')
+    plt.xlabel('Cycles')
+    plt.ylabel('Gini index')
+    plt.savefig('rewards_gini/Gini_indexes_all_bakers_' + str(start) + 'to' + str(end) + '_rewards_per_cycle.png')
+    plt.close()
+
+
+def plot_era_baker_reward(start, end, era_name):
+    """plot rewards per era, i.e. from cycle start to cycle end"""
+    rewards_all_bakers_athens = compute_reward_era_baker_per_cycle(start, end)
+    x_data = list(range(start, end + 1))
+    y_data = rewards_all_bakers_athens
+    plt.plot(x_data, y_data)
+    plt.title('Reward all bakers per cycle in Upgrade Era ' + era_name)
+    plt.xlabel('Cycles (Time)')
+    plt.ylabel('Rewards')
+    plt.savefig('rewards_baker/Reward_all_bakers_per_cycle_' + era_name + '.png')
+    plt.close()
+    return
+
+
+def plot_num_working_bakers_per_cycle():
+    y_data = compute_num_working_bakers_per_cycle_list()
+    x_data = list(range(0, len(y_data)))
+    plt.plot(x_data, y_data)
+    plt.title('Total number of working bakers per cycle')
+    plt.xlabel('Cycles')
+    plt.ylabel('Number of bakers')
+    plt.savefig('images/Total_num_working_bakers_per_cycle.png')
+    plt.close()
+
+
+def plot_num_active_bakers_per_cycle():
+    y_data = compute_num_active_bakers_per_cycle_list()
+    x_data = list(range(0, len(y_data)))
+    plt.plot(x_data, y_data)
+    plt.title('Total number of active bakers per cycle')
+    plt.xlabel('Cycles')
+    plt.ylabel('Number of bakers')
+    plt.savefig('images/Total_num_active_bakers_per_cycle.png')
+    plt.close()
+
+
+def plot_income_rolls_gini_index(start, end):
+    gini_indexes_income_table_rolls = compute_gini_income_table_rolls(start, end)
+    x_data = list(range(start, end + 1))
+    y_data = gini_indexes_income_table_rolls
+    plt.plot(x_data, y_data)
+    plt.title('Gini indexes income_table rolls from cycles ' + str(start) + ' to ' + str(end))
+    plt.xlabel('Cycles')
+    plt.ylabel('Gini index')
+    plt.savefig('images/gini_index/income_table_rolls_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
+    plt.close()
+
+
+def plot_income_rewards_gini_index(start, end):
+    gini_indexes_income_table_rewards = compute_gini_income_table_rewards(start, end)
+    x_data = list(range(start, end + 1))
+    y_data = gini_indexes_income_table_rewards
+    plt.plot(x_data, y_data)
+    plt.title('Gini indexes income_table rewards from cycles ' + str(start) + ' to ' + str(end))
+    plt.xlabel('Cycles')
+    plt.ylabel('Gini index')
+    plt.savefig('images/gini_index/income_table_rewards_cycle_' + str(start) + '_to_' + str(end) + '_gini_index.png')
+    plt.close()
+
+
 def plot_expectational_fairness_all_bakers_cycles_average(start, end):
     x_data = list((range(start, end)))
     y_data = compute_fairness_percentages_average_all_cycles(start, end)
@@ -376,7 +376,7 @@ def plot_expectational_fairness_all_bakers_cycles_average(start, end):
     plt.xlabel('Cycle')
     plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness all cycles averaged over all bakers from cycle ' + str(start) + ' to ' + str(end))
-    plt.savefig('images/expectational_fairness_allbakers_averaged_allcycles_' + str(start) + '_' + str(end) + '.png')
+    plt.savefig('images/expectational_fairness/expectational_fairness_allbakers_averaged_allcycles_' + str(start) + '_' + str(end) + '.png')
     plt.close()
 
 
@@ -389,7 +389,7 @@ def plot_expectational_fairness_all_bakers_cycles_highest_x_percent(start, end, 
     plt.ylabel('Absolute reward/Expected reward')
     plt.legend()
     plt.title('Expectational Fairness from cycle ' + str(start) + ' to ' + str(end) + ' highest ' + str(x) + ' percent')
-    plt.savefig('images/expectational_fairness_cycles_' + str(start) + '_' + str(end) + '_highest_' + str(x) + '.png')
+    plt.savefig('images/expectational_fairness/expectational_fairness_cycles_' + str(start) + '_' + str(end) + '_highest_' + str(x) + '.png')
     plt.close()
 
 
@@ -408,7 +408,7 @@ def plot_expecational_fairness_all_bakers_overview(start, end, lowest_x, lowest_
     plt.plot(x_data, y4_data, '.', color='red', label='average')
     plt.legend()
     plt.title('Expectational Fairness from cycle ' + str(start) + ' to ' + str(end))
-    plt.savefig('images/expectational_fairness_cycles_' + str(start) + '_' + str(end) + '_overview' + '.png')
+    plt.savefig('images/expectational_fairness/expectational_fairness_cycles_' + str(start) + '_' + str(end) + '_overview' + '.png')
     plt.close()
 
 
@@ -436,7 +436,7 @@ def plot_expectational_fairness_all_bakers_cycles(start, end):
     plt.legend()
     plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness for all cycles and all bakers')
-    plt.savefig('images/expectational_fairness_allbakers_allcycles.png')
+    plt.savefig('images/expectational_fairness/expectational_fairness_allbakers_allcycles.png')
     plt.close()
 
 
@@ -452,7 +452,7 @@ def plot_expectational_fairness(start, end, baker):
     plt.xlabel('Cycle')
     plt.ylabel('Fraction of reward')
     plt.title('Expectational Fairness baker' + baker)
-    plt.savefig('images/expectational_fairness_onebaker_' + str(start) + '_' + str(end) + 'baker_'+ baker + '.png')
+    plt.savefig('images/expectational_fairness/expectational_fairness_onebaker_' + str(start) + '_' + str(end) + 'baker_'+ baker + '.png')
     plt.close()
 
 
@@ -464,7 +464,7 @@ def plot_expectational_fairness_difference(start, end, baker):
     plt.xlabel('Cycle')
     plt.ylabel('Difference actual and expected reward fraction')
     plt.title('Exp. Fairness Diff. Baker ' + baker)
-    plt.savefig('images/expectational_fairness_difference_' + str(start) + '_' + str(end) + '_baker_' + baker + '.png')
+    plt.savefig('images/expectational_fairness/expectational_fairness_difference_' + str(start) + '_' + str(end) + '_baker_' + baker + '.png')
     plt.close()
 
 
@@ -529,7 +529,7 @@ def plot_robust_fairness(cycle):
     plt.title('Robust Fairness with fixed delta cycle ' + str(cycle))
     plt.xlabel('Delta')
     plt.ylabel('Epsilon')
-    plt.savefig('images/robust_fairness_cycle_' + str(cycle) + '.png')
+    plt.savefig('images/robust_fairness/robust_fairness_cycle_' + str(cycle) + '.png')
     plt.close()
 
 
