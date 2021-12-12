@@ -19,38 +19,6 @@ def get_avg_reward_per_cycle():
     return avg_reward_per_cycle
 
 
-def get_baker_addresses():
-    baker_addresses = cur.execute('SELECT DISTINCT(address) FROM bakers').fetchall()
-    baker_address_list = []
-    for add in baker_addresses:
-        baker_address_list.append(add[0])
-    return baker_address_list
-
-
-def get_income_bakers():
-    baker_addresses = cur.execute('SELECT DISTINCT(address) FROM income_table').fetchall()
-    baker_address_list = []
-    for add in baker_addresses:
-        baker_address_list.append(add[0])
-    return baker_address_list
-
-
-def get_baker_addresses_from_income_table():
-    baker_addresses = cur.execute('SELECT DISTINCT(address) FROM income_table').fetchall()
-    baker_address_list = []
-    for add in baker_addresses:
-        baker_address_list.append(add[0])
-    return baker_address_list
-
-
-def get_baker_addresses_from_block():
-    baker_addresses = cur.execute('SELECT DISTINCT(baker) FROM blocks').fetchall()
-    baker_address_list = []
-    for add in baker_addresses:
-        baker_address_list.append(add[0])
-    return baker_address_list
-
-
 def calculate_gini_index(wealths):
     """Compute Gini coefficient of array of values"""
     # convert list to numpy array
@@ -234,9 +202,6 @@ def plot_num_active_bakers_per_cycle():
 
 
 def plot_income_rolls_gini_index(start, end):
-    # select * from income_table where cycle = 150 and address='tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9';
-    # select distinct(address) from income_table;
-    baker_addresses = get_baker_addresses_from_income_table()
     gini_indexes_income_table_rolls = compute_gini_income_table_rolls(start, end)
     x_data = list(range(start, end + 1))
     y_data = gini_indexes_income_table_rolls
@@ -289,11 +254,7 @@ def compute_fractions(start, end, baker):
 
 def compute_fraction_all_bakers_one_cycle(cycle):
     rewards = []  # actual rewards for all bakers in a specific cycle
-    # TODO: replace this with get_all_active_bakers
-    bakers = ["tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9", "tz3bvNMQ95vfAYtG8193ymshqjSvmxiCUuR5",
-              "tz3RB4aoyjov4KEVRbuhvQ1CKJgBJMWhaeB8", "tz3bTdwZinP8U1JmSweNzVKhmwafqWmFWRfk",
-              "tz3NExpXn9aPNZPorRE4SdjJ2RGrfbJgMAaV", "tz3UoffC7FG7zfpmvmjUmUeAaHvzdcUvAj6r",
-              "tz3WMqdzXqRWXwyvj5Hp2H7QEepaUuS7vd9K", "tz3VEZ4k6a4Wx42iyev6i2aVAptTRLEAivNN"]
+    bakers = get_all_active_bakers()
     rews = cur.execute('select total_income from income_table where cycle = %s and (address= "%s" or address= "%s" or '
                        'address ="%s" or address= "%s" or address="%s" or address = "%s" or address= "%s" or address= '
                        '"%s")' % (cycle, bakers[0],
@@ -454,14 +415,15 @@ def plot_expecational_fairness_all_bakers_overview(start, end, lowest_x, lowest_
 def plot_expectational_fairness_all_bakers_cycles(start, end):
     """Plot expectational fairness  for all bakers and cycles, here version with 8 bakers"""
     x_data = list((range(start, end)))
-    y_data = compute_fairness_percentage(baker='tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9')
-    y2_data = compute_fairness_percentage(baker='tz3bvNMQ95vfAYtG8193ymshqjSvmxiCUuR5')
-    y3_data = compute_fairness_percentage(baker='tz3RB4aoyjov4KEVRbuhvQ1CKJgBJMWhaeB8')
-    y4_data = compute_fairness_percentage(baker='tz3bTdwZinP8U1JmSweNzVKhmwafqWmFWRfk')
-    y5_data = compute_fairness_percentage(baker='tz3NExpXn9aPNZPorRE4SdjJ2RGrfbJgMAaV')
-    y6_data = compute_fairness_percentage(baker='tz3UoffC7FG7zfpmvmjUmUeAaHvzdcUvAj6r')
-    y7_data = compute_fairness_percentage(baker='tz3WMqdzXqRWXwyvj5Hp2H7QEepaUuS7vd9K')
-    y8_data = compute_fairness_percentage(baker='tz3VEZ4k6a4Wx42iyev6i2aVAptTRLEAivNN')
+    bakers = get_all_active_bakers()
+    y_data = compute_fairness_percentage(baker=bakers[0])
+    y2_data = compute_fairness_percentage(baker=bakers[1])
+    y3_data = compute_fairness_percentage(baker=bakers[2])
+    y4_data = compute_fairness_percentage(baker=bakers[3])
+    y5_data = compute_fairness_percentage(baker=bakers[4])
+    y6_data = compute_fairness_percentage(baker=bakers[5])
+    y7_data = compute_fairness_percentage(baker=bakers[6])
+    y8_data = compute_fairness_percentage(baker=bakers[7])
     plt.plot(x_data, y_data, '.', color='black', label='baker1')
     plt.plot(x_data, y2_data, '.', color='blue', label='baker2')
     plt.plot(x_data, y3_data, '.', color='green', label='baker3')
@@ -629,7 +591,7 @@ if __name__ == '__main__':
     # for start, end in zip(start_cycles, end_cycles):
     #     plot_expectational_fairness_difference(start, end, baker)
 
-    plot_expectational_fairness_all_bakers_cycles_average(0, 8)
+    plot_expectational_fairness_all_bakers_cycles_average(0, 8) # TODO: check this plot here
 
     # highest x percent
     plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 8, 0.1)
