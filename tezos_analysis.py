@@ -333,22 +333,6 @@ def compute_fraction_all_bakers_one_cycle(cycle):
     return fractions, expected
 
 
-def plot_expectational_fairness(start, end, baker):
-    """the expectation of the fraction of the reward that baker A receives of the total reward should be equal to his
-    initial resource a --> on x axis we have the number of blocks/cycles and on the y axis the fraction of the total
-    reward, and another line x_a for the initial resource, start: startcycle/startblock, end: endcycle/endblock"""
-    x_data = list((range(start, end + 1)))
-    y_data, y2_data = compute_fractions(start, end, baker) # TODO: here show absolute fractions -> absolute differences
-    plt.plot(x_data, y_data, label='Fraction of resource actual')
-    plt.plot(x_data, y2_data, label='Fraction of initial resource (expected)')
-    plt.legend()
-    plt.xlabel('Cycle')
-    plt.ylabel('Fraction of reward')
-    plt.title('Expectational Fairness baker' + baker)
-    plt.savefig('images/expectational_fairness_onebaker_' + str(start) + '_' + str(end) + 'baker_'+ baker + '.png')
-    plt.close()
-
-
 def compute_difference(actual, expected):
     """Computes difference array of the actual and expected values"""
     differences = []
@@ -368,26 +352,24 @@ def get_all_active_bakers():
     return bakers
 
 
-def compute_fairness_percentage_average_one_cycle(cycle):
-    fractions, expected = compute_fraction_all_bakers_one_cycle(cycle)
-    # fractions and expected are of length num_bakers -> compute percentages for each baker and then average these
-    n = len(fractions)  # number of bakers
-    percentages = []  # contains percentages for all the bakers in a specific cycle
-    for x in range(0, n):
-        percent_x = fractions[x] / expected[x]
-        percentages.append(percent_x)
-    avg_percent = np.mean(percentages)  # this is the mean of the percentages over all bakers for cycle 3
-    return avg_percent
-
-
-# TODO: clean this up and move this two plots together
-def compute_fairness_percentage_one_cycle(cycle, x):
+def compute_fairness_percentage_one_cycle(cycle):
     fractions, expected = compute_fraction_all_bakers_one_cycle(cycle)
     n = len(fractions)  # number of bakers
     percentages = []  # contains percentages for all the bakers in a specific cycle
     for p in range(0, n):
         percent_p = fractions[p] / expected[p]
         percentages.append(percent_p)
+    return percentages
+
+
+def compute_fairness_percentage_average_one_cycle(cycle):
+    percentages = compute_fairness_percentage_one_cycle(cycle)
+    avg_percent = np.mean(percentages)  # mean of the percentages over all bakers for a cycle
+    return avg_percent
+
+
+def compute_fairness_percentage_one_cycle_x(cycle, x):
+    percentages = compute_fairness_percentage_one_cycle(cycle)
     x_percent = int(np.ceil(len(percentages)/(x*100)))
     percentages = np.asarray(percentages)
     highest_x_percentages = np.sort(percentages)[(len(percentages)-x_percent):]
@@ -402,7 +384,7 @@ def compute_fairness_highest_x_percent_all_cycles(start, end, x):
     percentages_lowest = []
     num_cycles = end-start
     for c in range(0, num_cycles):
-        highest_x, lowest_x = compute_fairness_percentage_one_cycle(c, x)
+        highest_x, lowest_x = compute_fairness_percentage_one_cycle_x(c, x)
         percentages_highest.append(highest_x)
         percentages_lowest.append(lowest_x)
     return percentages_highest, percentages_lowest
@@ -418,8 +400,6 @@ def compute_fairness_percentages_average_all_cycles(start, end):
 
 
 def compute_fairness_percentage(baker):
-    # actuals = []  # percentage of fractions of actual reward/total reward for every cycle
-    # expecteds = []  # percentage of fractions of expected reward/total reward for cycle
     actuals, expecteds = compute_fractions(0, 400, baker)
     percentages = []
     for i in range(0, 400):
@@ -495,6 +475,22 @@ def plot_expectational_fairness_all_bakers_cycles(start, end):
     plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness for all cycles and all bakers')
     plt.savefig('images/expectational_fairness_allbakers_allcycles.png')
+    plt.close()
+
+
+def plot_expectational_fairness(start, end, baker):
+    """the expectation of the fraction of the reward that baker A receives of the total reward should be equal to his
+    initial resource a --> on x axis we have the number of blocks/cycles and on the y axis the fraction of the total
+    reward, and another line x_a for the initial resource, start: startcycle/startblock, end: endcycle/endblock"""
+    x_data = list((range(start, end + 1)))
+    y_data, y2_data = compute_fractions(start, end, baker) # TODO: here show absolute fractions -> absolute differences
+    plt.plot(x_data, y_data, label='Fraction of resource actual')
+    plt.plot(x_data, y2_data, label='Fraction of initial resource (expected)')
+    plt.legend()
+    plt.xlabel('Cycle')
+    plt.ylabel('Fraction of reward')
+    plt.title('Expectational Fairness baker' + baker)
+    plt.savefig('images/expectational_fairness_onebaker_' + str(start) + '_' + str(end) + 'baker_'+ baker + '.png')
     plt.close()
 
 
