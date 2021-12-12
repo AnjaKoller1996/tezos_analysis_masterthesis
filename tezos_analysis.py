@@ -261,7 +261,7 @@ def plot_income_rewards_gini_index(start, end):
 
 
 def compute_fractions(start, end, baker):
-    """Currently works for 2 cycles and 1 specific baker"""
+    """Currently works for 1 specific baker"""
     rewards = []
     rews = cur.execute('select total_income from income_table where address '
                        '="%s" and cycle >= %s and cycle <= %s' % (baker,
@@ -481,9 +481,9 @@ def plot_expectational_fairness_all_bakers_cycles(start, end):
 def plot_expectational_fairness(start, end, baker):
     """the expectation of the fraction of the reward that baker A receives of the total reward should be equal to his
     initial resource a --> on x axis we have the number of blocks/cycles and on the y axis the fraction of the total
-    reward, and another line x_a for the initial resource, start: startcycle/startblock, end: endcycle/endblock"""
+    reward, and another line x_a for the initial resource"""
     x_data = list((range(start, end + 1)))
-    y_data, y2_data = compute_fractions(start, end, baker) # TODO: here show absolute fractions -> absolute differences
+    y_data, y2_data = compute_fractions(start, end, baker)
     plt.plot(x_data, y_data, label='Fraction of resource actual')
     plt.plot(x_data, y2_data, label='Fraction of initial resource (expected)')
     plt.legend()
@@ -498,10 +498,9 @@ def plot_expectational_fairness_difference(start, end, baker):
     x_data = list((range(start, end + 1)))
     actual, expected = compute_fractions(start, end, baker)
     y_data = compute_difference(actual, expected)
-    # y_data is absolute difference of expected and actual value
     plt.plot(x_data, y_data)
     plt.xlabel('Cycle')
-    plt.ylabel('Absolute difference actual and expected reward fraction')
+    plt.ylabel('Difference actual and expected reward fraction')
     plt.title('Exp. Fairness Diff. Baker ' + baker)
     plt.savefig('images/expectational_fairness_difference_' + str(start) + '_' + str(end) + '_baker_' + baker + '.png')
     plt.close()
@@ -515,10 +514,10 @@ def plot_robust_fairness(cycle):
     address: address of baker A
     epsilon: between 0 and 1
     delta: >=1
-    Version 1 cycle all bakers"""
+    Version one cycle all bakers"""
 
     EPS = np.empty([100])
-    Deltas = np.linspace(0, 1, 100)  # take deltas which are higher than 0.18 as there the fluctuations are lower
+    Deltas = np.linspace(0, 1, 100)
     Epsilons = np.linspace(0, 1, 100)
 
     # initial_rewards a
