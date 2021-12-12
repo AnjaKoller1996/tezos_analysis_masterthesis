@@ -261,10 +261,8 @@ def plot_income_rewards_gini_index(start, end):
 
 
 def compute_fractions(start, end, baker):
-    """Currently works for 2 cycles and 1 specific baker -> make it work for all bakers and all cycles
-    current baker: 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9' """
+    """Currently works for 2 cycles and 1 specific baker"""
     rewards = []
-    # TODO: try this also out for all addresses -> drop the where address= "x" part
     rews = cur.execute('select total_income from income_table where address '
                        '="%s" and cycle >= %s and cycle <= %s' % (baker,
                                                                   start, end)).fetchall()
@@ -327,7 +325,7 @@ def compute_fraction_all_bakers_one_cycle(cycle):
     # Fractions: array of length n, where each entry divides rewards[i]/total_rewards[i] for i = 1 to n
     fractions = []
     expected = []
-    for c in range(0, n):  # for all the bakers compute the fractions # TODO: change this back to n
+    for c in range(0, n):  # for all the bakers compute the fractions
         frac_c = rewards[c] / total_reward
         fractions.append(frac_c)
         exp_c = initial_rewards[c] / initial_total
@@ -336,29 +334,27 @@ def compute_fraction_all_bakers_one_cycle(cycle):
 
 
 def plot_expectational_fairness(start, end, baker):
-    # TODO: make this work for multiple multiple bakers
     """the expectation of the fraction of the reward that baker A receives of the total reward should be equal to his
     initial resource a --> on x axis we have the number of blocks/cycles and on the y axis the fraction of the total
-    reward, and another line x_a for the initial resource, start: startcycle/startblock, end: endcycle/endblock
-    currently used address: address = 'tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9'"""
+    reward, and another line x_a for the initial resource, start: startcycle/startblock, end: endcycle/endblock"""
     x_data = list((range(start, end + 1)))
-    y_data, y2_data = compute_fractions(start, end, baker)
+    y_data, y2_data = compute_fractions(start, end, baker) # TODO: here show absolute fractions -> absolute differences
     plt.plot(x_data, y_data, label='Fraction of resource actual')
     plt.plot(x_data, y2_data, label='Fraction of initial resource (expected)')
     plt.legend()
     plt.xlabel('Cycle')
     plt.ylabel('Fraction of reward')
-    plt.title('Expectational Fairness')
-    plt.savefig('images/expectational_fairness_' + str(start) + '_' + str(end) + '.png')
+    plt.title('Expectational Fairness baker' + baker)
+    plt.savefig('images/expectational_fairness_onebaker_' + str(start) + '_' + str(end) + 'baker_'+ baker + '.png')
     plt.close()
 
 
 def compute_difference(actual, expected):
-    """Computes absolute difference array of the actual and expected values"""
+    """Computes difference array of the actual and expected values"""
     differences = []
     n = len(actual)
     for c in range(0, n):
-        diff_c = np.abs(actual[c] - expected[c])
+        diff_c = (actual[c] - expected[c])
         differences.append(diff_c)
     return differences
 
@@ -464,14 +460,14 @@ def plot_expecational_fairness_all_bakers_overview(start, end, lowest_x, lowest_
     y1_data = y1_highest
     plt.plot(x_data, y1_data, '.', color='black', label='highest ' + str(highest_x)+' percent')
     y2_data = y2_lowest
-    plt.plot(x_data, y2_data, '.', color='green', label='highest ' + str(lowest_x) + ' percent')
+    # plt.plot(x_data, y2_data, '.', color='green', label='highest ' + str(lowest_x) + ' percent')
     y3_data = y3_lowest
     plt.plot(x_data, y3_data, '.', color='blue', label='lowest ' + str(lowest_x2) + ' percent')
     y4_data = compute_fairness_percentages_average_all_cycles(start, end)
     plt.plot(x_data, y4_data, '.', color='red', label='average')
     plt.legend()
     plt.title('Expectational Fairness from cycle ' + str(start) + ' to ' + str(end))
-    plt.savefig('images/expectational_fairness_cycles' + str(start) + '_' + str(end) + '_overview' + '.png')
+    plt.savefig('images/expectational_fairness_cycles_' + str(start) + '_' + str(end) + '_overview' + '.png')
     plt.close()
 
 
@@ -509,8 +505,8 @@ def plot_expectational_fairness_difference(start, end, baker):
     # y_data is absolute difference of expected and actual value
     plt.plot(x_data, y_data)
     plt.xlabel('Cycle')
-    plt.ylabel('Absolute difference of actual and expected reward fraction')
-    plt.title('Expectational Fairness')
+    plt.ylabel('Absolute difference actual and expected reward fraction')
+    plt.title('Exp. Fairness Diff. Baker ' + baker)
     plt.savefig('images/expectational_fairness_difference_' + str(start) + '_' + str(end) + '_baker_' + baker + '.png')
     plt.close()
 
@@ -627,37 +623,28 @@ if __name__ == '__main__':
 
     # Expectational Fairness
     baker = "tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"
-    # TODO: make plot expectational fairness first for only 1 specific baker -> make it work for all bakers
-    plot_expectational_fairness(0, 396, baker)
+    baker_2 = 'tz3NExpXn9aPNZPorRE4SdjJ2RGrfbJgMAaV'
+    plot_expectational_fairness(0, 8, baker)
     for start, end in zip(start_cycles, end_cycles):
         plot_expectational_fairness(start, end, baker)
 
-    # expectational fairness with absolute difference of expected and actual reward difference on y axis
-    plot_expectational_fairness_difference(0, 396, baker)
-    for start, end in zip(start_cycles, end_cycles):
-        plot_expectational_fairness_difference(start, end, baker)
+    # expectational fairness with difference of expected and actual reward difference on y axis
+    plot_expectational_fairness_difference(0, 8, baker)
+    plot_expectational_fairness_difference(0, 8, baker_2)
+    # for start, end in zip(start_cycles, end_cycles):
+    #     plot_expectational_fairness_difference(start, end, baker)
 
-    baker_2 = 'tz3NExpXn9aPNZPorRE4SdjJ2RGrfbJgMAaV'
-    plot_expectational_fairness_difference(0, 396, baker_2)
-
-    # TODO: do the same for rolls? Assumed that the "stake" is the initial reward that the bakers have at cycle 0
-
-    # Robust fairness (we fix delta and a specific cycle and find epsilon)
-    plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
-    plot_robust_fairness(5)
-    # plot_robust_fairness(150) # TODO: take only the bakers that are always active -> not
-    #  possible to compare as more bakers are there plot_robust_fairness(baker, 200)
-
-    # TODO: try this expectational fairness plot with a different baker, for example baker_2 and take absolute difference values (can go below 0)
-    plot_expectational_fairness_all_bakers_cycles_average(0, 398)
     plot_expectational_fairness_all_bakers_cycles_average(0, 8)
 
     # highest x percent
     plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 8, 0.1)
-    plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 8, 0.2)
     plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 398, 0.1)
     # expectational fairness plot for cycles 0 to 8, with average, highest 30%, lowest 10%, lowest 25%
-    plot_expecational_fairness_all_bakers_overview(0, 8, 0.2, 0.25, 0.3)
+    plot_expecational_fairness_all_bakers_overview(0, 8, 0.1, 0.25, 0.3)
+
+    # Robust fairness (we fix delta and a specific cycle and find epsilon)
+    plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
+    plot_robust_fairness(5)
 
     # Close connection
     con.close()
