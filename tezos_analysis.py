@@ -407,6 +407,8 @@ def plot_expecational_fairness_all_bakers_overview(start, end, lowest_x, lowest_
     y4_data = compute_fairness_percentages_average_all_cycles(start, end)
     plt.plot(x_data, y4_data, '.', color='red', label='average')
     plt.legend()
+    plt.xlabel('Cycle')
+    plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness from cycle ' + str(start) + ' to ' + str(end))
     plt.savefig('images/expectational_fairness/expectational_fairness_cycles_' + str(start) + '_' + str(end) + '_overview' + '.png')
     plt.close()
@@ -464,7 +466,7 @@ def plot_expectational_fairness_difference(start, end, baker):
     plt.xlabel('Cycle')
     plt.ylabel('Difference actual and expected reward fraction')
     plt.title('Exp. Fairness Diff. Baker ' + baker)
-    plt.savefig('images/expectational_fairness/expectational_fairness_difference_' + str(start) + '_' + str(end) + '_baker_' + baker + '.png')
+    plt.savefig('images/expectational_fairness/' + str(start) + '_' + str(end) + '_baker_' + baker + '.png')
     plt.close()
 
 
@@ -480,7 +482,7 @@ def plot_robust_fairness(cycle):
 
     EPS = np.empty([100])
     Deltas = np.linspace(0, 1, 100)
-    Epsilons = np.linspace(0, 1, 100)
+    Epsilons = np.linspace(0, 5, 100)  # epsilon > 1 needed for very small deltas
 
     # initial_rewards a
     initial_rewards = []  # list with initial income for all the bakers
@@ -511,7 +513,6 @@ def plot_robust_fairness(cycle):
     initial_stakes = np.fromiter(initial_stakes, dtype=float)
     fractions = np.fromiter(fractions, dtype=float)
 
-    idxes = []  # need to keep track of this in order to see if there are deltas for which no eps satisfy the equation
     for idx, delta in enumerate(Deltas):
         for eps in Epsilons:
             low_eps = (1 - eps) * initial_stakes <= fractions
@@ -520,17 +521,26 @@ def plot_robust_fairness(cycle):
             Pr = sum(Freq) / len(fractions)
             if Pr >= 1 - delta:
                 EPS[idx] = eps
-                idxes.append(idx)
                 break
     print('EPS', EPS)
     print("The bakers put " + str(round(sum(initial_stakes), 4) * 100) + "% of the stakes and received " + str(
         round(sum(fractions), 4) * 100) + "% of the rewards")
-    plt.plot(Deltas[idxes[0]:], EPS[idxes[0]:])
+    plt.plot(Deltas, EPS)
     plt.title('Robust Fairness with fixed delta cycle ' + str(cycle))
     plt.xlabel('Delta')
     plt.ylabel('Epsilon')
     plt.savefig('images/robust_fairness/robust_fairness_cycle_' + str(cycle) + '.png')
     plt.close()
+
+
+def plot_nakamoto_index(cylce):
+    return
+    # TODO:
+
+
+def plot_robust_fairness_aoc():
+    # TODO: plot area under curve of robust fairness for each cycle
+    return
 
 
 if __name__ == '__main__':
@@ -591,7 +601,7 @@ if __name__ == '__main__':
     # for start, end in zip(start_cycles, end_cycles):
     #     plot_expectational_fairness_difference(start, end, baker)
 
-    plot_expectational_fairness_all_bakers_cycles_average(0, 8) # TODO: check this plot here
+    plot_expectational_fairness_all_bakers_cycles_average(0, 8)
 
     # highest x percent
     plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 8, 0.1)
@@ -603,5 +613,6 @@ if __name__ == '__main__':
     plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
     plot_robust_fairness(5)
 
+    # TODO: plot nakamoto index and robust fairness area under curve
     # Close connection
     con.close()
