@@ -570,7 +570,7 @@ def get_baker_rewards_per_cycle_sorted(cycle):
 def compute_nakamoto_index(start, end):
     num_cycles = end-start
     num_bakers = [0] * num_cycles  # array with number of bakers per cycle needed for > 50%
-    total_rewards_per_cycle = get_total_rewards_per_cycle(start, end) # TODO: check length of this array (is 401 instaed of 400)
+    total_rewards_per_cycle = get_total_rewards_per_cycle(start, end)
     num_bakers_per_cycle = get_num_baker_per_cycle(start, end)
 
     for c in range(start, end):  # for every cycle
@@ -587,7 +587,6 @@ def compute_nakamoto_index(start, end):
                 baker_rewards_c_summed += baker_rewards_sorted_c[i]
                 i += 1
 
-    # TODO: check num_bakers and then check num_bakers fraction with debugger
     num_bakers_fraction = []
     for n in num_bakers:
         num_bakers_fraction.append(n/num_bakers_per_cycle[n])
@@ -600,7 +599,6 @@ def plot_nakamoto_index(start, end):
     unfair as we have a few very big players """
     x_data = list((range(start, end)))
     y_data = compute_nakamoto_index(start, end)
-    # TODO: check for x and y data length here
     plt.plot(x_data, y_data)
     plt.xlabel('Cycle')
     plt.ylabel('Percentage of bakers to reach > 50%')
@@ -619,7 +617,6 @@ def plot_robust_fairness_aoc(start, end):
     plt.savefig('images/robust_fairness/area_under_curve.png')
     plt.close()
     # TODO: plot area under curve of robust fairness for each cycle
-
 
 
 if __name__ == '__main__':
@@ -691,8 +688,11 @@ if __name__ == '__main__':
     # Robust fairness (we fix delta and a specific cycle and find epsilon)
     plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
     plot_robust_fairness(5)
-
-    # TODO: plot nakamoto index and robust fairness area under curve
+    # Area under curve robust fairness
+    # TODO: aoc function call
+    # Nakamoto index
     plot_nakamoto_index(0, 398)
+    plot_nakamoto_index(0,8)
+
     # Close connection
     con.close()
