@@ -1,5 +1,7 @@
 import sqlite3
 import numpy as np
+from scipy.integrate import simps
+from numpy import trapz
 import matplotlib.pyplot as plt
 
 DB_FILE = '/home/anjakoller/tezos_dataextraction_merged_alltables.db'
@@ -475,16 +477,15 @@ def plot_expectational_fairness_difference(start, end, baker):
     plt.close()
 
 
-def plot_robust_fairness(cycle):
+def compute_robust_fairness(cycle):
     """Robust fairness Pr((1-epsilon)*a <= gamma_a <= (1+epsilon)*a) <= (1-delta)
-    Fix delta, find largest epsilon EPS for which above equation is true
-    gamma_a: fraction that baker A receives of total reward,
-    a: initial resource of Baker A
-    address: address of baker A
-    epsilon: between 0 and 1
-    delta: >=1
-    Version one cycle all bakers"""
-
+        Fix delta, find largest epsilon EPS for which above equation is true
+        gamma_a: fraction that baker A receives of total reward,
+        a: initial resource of Baker A
+        address: address of baker A
+        epsilon: between 0 and 1
+        delta: >=1
+        Version one cycle all bakers"""
     EPS = np.empty([100])
     Deltas = np.linspace(0, 1, 100)
     Epsilons = np.linspace(0, 5, 100)  # epsilon > 1 needed for very small deltas
@@ -530,7 +531,12 @@ def plot_robust_fairness(cycle):
     print('EPS', EPS)
     print("The bakers put " + str(round(sum(initial_stakes), 4) * 100) + "% of the stakes and received " + str(
         round(sum(fractions), 4) * 100) + "% of the rewards")
-    plt.plot(Deltas, EPS)
+    return Deltas, EPS
+
+
+def plot_robust_fairness(cycle):
+    x_data, y_data = compute_robust_fairness(cycle)
+    plt.plot(x_data, y_data)
     plt.title('Robust Fairness with fixed delta cycle ' + str(cycle))
     plt.xlabel('Delta')
     plt.ylabel('Epsilon')
@@ -593,6 +599,20 @@ def compute_nakamoto_index(start, end):
     return num_bakers_fraction
 
 
+def compute_aoc(start, end):
+    """computes the area under the curve for robust fairness for all the cycles from start to end"""
+    areas = [] # array of length cycles, contains for each cycle the area under the curve of robust fairness
+    num_cycles = end-start
+    for cycle in range(start+1, end):
+        Deltas, EPS = compute_robust_fairness(cycle)  # on x axis the Deltas, on y axis EPS values
+        area_cycle = trapz(EPS, dx=num_cycles)  # compute area using composite trapezoidal rule, dx indicates spacing
+        # area_cycle = trapz(EPS, x=Deltas, axis= -1)
+        # dx: we have 100 values from 0 to 1 -> take 100 steps? TODO: is this accurate when our steps are not equally?
+        areas.append(area_cycle)
+    print(areas)
+    return areas
+
+
 def plot_nakamoto_index(start, end):
     """plots the nakamoto index for each cycle, i.e. the relative number of bakers (percentage) we need in order to
     have more than 50% of the stake, this can fluctuate, but if it has a general tendency to go down, then it gets
@@ -608,15 +628,14 @@ def plot_nakamoto_index(start, end):
 
 
 def plot_robust_fairness_aoc(start, end):
-    x_data = list((range(start, end)))
-    # y_data = compute_aoc() # TODO: implement this
+    x_data = list((range(start+1, end)))
+    y_data = compute_aoc(start, end)
     plt.xlabel('Cycle')
     plt.ylabel('Area')
-    # plt.plot(x_data, y_data)
-    plt.title('Robust fairness Area under Curve per Cycle')
-    plt.savefig('images/robust_fairness/area_under_curve.png')
+    plt.plot(x_data, y_data)
+    plt.title('Robust fairness Area under Curve per Cycle from ' + str(start) + ' to ' + str(end))
+    plt.savefig('images/robust_fairness/area_under_curve_' + str(start) + '_' + str(end) + '.png')
     plt.close()
-    # TODO: plot area under curve of robust fairness for each cycle
 
 
 if __name__ == '__main__':
@@ -689,10 +708,12 @@ if __name__ == '__main__':
     plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
     plot_robust_fairness(5)
     # Area under curve robust fairness
-    # TODO: aoc function call
-    # Nakamoto index
+    plot_robust_fairness_aoc(0, 5)
+    # plot_robust_fairness_aoc(0, 398)
+    # TODO: adapt robust fairness computation method to also work for more than 5
+    #  cycles (more than the first 8 bakers, some of where the rolls at time 0 do not exist) Nakamoto index
     plot_nakamoto_index(0, 398)
-    plot_nakamoto_index(0,8)
+    plot_nakamoto_index(0, 8)
 
     # Close connection
     con.close()
