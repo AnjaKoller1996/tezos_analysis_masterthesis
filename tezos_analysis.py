@@ -477,6 +477,40 @@ def plot_expectational_fairness_difference(start, end, baker):
     plt.close()
 
 
+def get_baker_at_cycle(cycle):
+    """return an array of addresses of all bakers at cycle cycle"""
+    bakers = []
+    baker = cur.execute('select address from income_table where cycle= %s' % cycle).fetchall()
+    for b in range(0, len(baker)):
+        baker_b = cur.execute('select address from income_table where cycle = %s' % cycle).fetchall()
+        bakers.append(baker)
+    return bakers
+
+
+def get_income_at_cycle(cycle):
+    """return an array of incomes of all bakers at cycle cycle"""
+    rewards = []  # list with initial income for all the bakers
+    # ! changed: so that it is not cycle=0 but the first initial_reward is the reward the baker has the cycle before
+    reward = cur.execute('select total_income from income_table where cycle = %s' % cycle).fetchall()
+    for c in range(0, len(reward)):
+        rew_c = cur.execute('select total_income from income_table where cycle = %s' % cycle).fetchall()[c][0]
+        rewards.append(rew_c)
+    return rewards
+
+
+def compute_robust_fairness_new(cycle):
+    EPS = np.empty([100])
+    Deltas = np.linspace(0, 1, 100)
+    Epsilons = np.linspace(0, 5, 100)
+
+    initial_bakers = []  # get 8 initial bakers
+    initial_rewards = []  # array of length bakers
+    # TODO: for each cycle, if a baker is new (was not in the initial_bakers array already), put the baker in and
+    #  append his reward at the initial_rewards array redo compute_robust_fairness, so that it works for every cycle
+    #  and initial_stakes and fractions still have same length
+    return Deltas, EPS
+
+
 def compute_robust_fairness(cycle):
     """Robust fairness Pr((1-epsilon)*a <= gamma_a <= (1+epsilon)*a) <= (1-delta)
         Fix delta, find largest epsilon EPS for which above equation is true
@@ -491,11 +525,7 @@ def compute_robust_fairness(cycle):
     Epsilons = np.linspace(0, 5, 100)  # epsilon > 1 needed for very small deltas
 
     # initial_rewards a
-    initial_rewards = []  # list with initial income for all the bakers
-    initial_reward = cur.execute('select total_income from income_table where cycle = 0').fetchall()
-    for c in range(0, len(initial_reward)):
-        rew_c = cur.execute('select total_income from income_table where cycle = 0').fetchall()[c][0]
-        initial_rewards.append(rew_c)
+    initial_rewards = get_income_at_cycle(0)  # length of num_bakers at cycle 0
     initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
     initial_stakes = []
     for i in initial_rewards:
@@ -503,21 +533,18 @@ def compute_robust_fairness(cycle):
         initial_stakes.append(init_stake)
 
     # fractions gamma_a
-    rewards_array = []
-    rewards = cur.execute('select total_income from income_table where cycle=%s' % cycle).fetchall()
-    for f in range(0, len(rewards)):
-        fraction_f = cur.execute('select total_income from income_table where cycle=%s' % cycle).fetchall()[f][0]
-        rewards_array.append(fraction_f)
+    rewards_array = get_income_at_cycle(cycle)  # length of num_bakers at cycle (for ex at cycle 5 this has length 8)
 
-    fractions = []  # reward at cycle x divided by total_reward at cycle_x
+    fractions = []  # reward at cycle x divided by total_reward at cycle_x, same length as rewards_array
     total_reward = cur.execute('select sum(total_income) from income_table where cycle=%s' % cycle).fetchall()[0][0]
     for r in rewards_array:
         fraction_r = r / total_reward
         fractions.append(fraction_r)
 
     # convert initial_rewards and fractions to float array
-    initial_stakes = np.fromiter(initial_stakes, dtype=float)
-    fractions = np.fromiter(fractions, dtype=float)
+    initial_stakes = np.fromiter(initial_stakes, dtype=float)  # length of num bakers at cycle 0
+    fractions = np.fromiter(fractions, dtype=float)  # length of num bakers at cycle (i.e. current cycle)
+    # TODO: initial_stakes and fractions need to be of same length
 
     for idx, delta in enumerate(Deltas):
         for eps in Epsilons:
@@ -707,11 +734,18 @@ if __name__ == '__main__':
     # Robust fairness (we fix delta and a specific cycle and find epsilon)
     plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
     plot_robust_fairness(5)
+    # plot a robust fairness for every era (one cycle in each era)
+    # TODO: modify robust fairness -> check if a baker occurs a first time (in every cycle)
+    #era_cycles = [150, 200, 250, 300, 340, 370, 395]
+    #for c in era_cycles:
+    #    plot_robust_fairness(c)
+
     # Area under curve robust fairness
-    plot_robust_fairness_aoc(0, 5)
-    # plot_robust_fairness_aoc(0, 398)
-    # TODO: adapt robust fairness computation method to also work for more than 5
-    #  cycles (more than the first 8 bakers, some of where the rolls at time 0 do not exist) Nakamoto index
+    plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
+    # plot_robust_fairness_aoc(0, 398) # TODO: not possible to do for every cycle as some as at some points array
+    #  sizes switch -> 8 bakers to 28 bakers at cycle 6 for example
+
+    #  Nakamoto index
     plot_nakamoto_index(0, 398)
     plot_nakamoto_index(0, 8)
 
