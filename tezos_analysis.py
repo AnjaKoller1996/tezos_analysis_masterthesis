@@ -509,8 +509,9 @@ def compute_robust_fairness(cycle):
     for baker in bakers_cycle:
         if not (baker in initial_bakers):
             initial_bakers.append(baker)
-            baker_reward = cur.execute('select total_income from income_table where address=%s and cycle=%s' % (baker,cycle))
+            baker_reward = cur.execute('select total_income from income_table where address="%s" and cycle=%s' % (baker, cycle)).fetchall()[0][0]
             initial_rewards.append(baker_reward)
+    # TODO: check if we have to adapt initial_total
     initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
     initial_stakes = []
     for i in initial_rewards:
@@ -771,13 +772,13 @@ if __name__ == '__main__':
     plot_robust_fairness(6) # TODO: check this
     # plot a robust fairness for every era (one cycle in each era)
     # TODO: modify robust fairness -> check if a baker occurs a first time (in every cycle)
-    #era_cycles = [150, 200, 250, 300, 340, 370, 395]
-    #for c in era_cycles:
-    #    plot_robust_fairness(c)
+    era_cycles = [150, 200, 250, 300, 340, 370, 395]
+    for c in era_cycles:
+        plot_robust_fairness(c)
 
     # Area under curve robust fairness
     plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
-    # plot_robust_fairness_aoc(0, 398) # TODO: not possible to do for every cycle as some as at some points array
+    plot_robust_fairness_aoc(0, 398) # TODO: not possible to do for every cycle as some as at some points array
     #  sizes switch -> 8 bakers to 28 bakers at cycle 6 for example
 
     #  Nakamoto index
