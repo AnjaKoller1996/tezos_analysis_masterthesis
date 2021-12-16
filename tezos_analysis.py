@@ -540,9 +540,10 @@ def compute_robust_fairness(cycle):
             if Pr >= 1 - delta:
                 EPS[idx] = eps
                 break
-    print('EPS', EPS)
-    print("The bakers put " + str(round(sum(initial_stakes), 4) * 100) + "% of the stakes and received " + str(
-        round(sum(fractions), 4) * 100) + "% of the rewards")
+    # TODO: remove this here but check it before if it makes sense
+    #print('EPS', EPS)
+    #print("The bakers put " + str(round(sum(initial_stakes), 4) * 100) + "% of the stakes and received " + str(
+    #    round(sum(fractions), 4) * 100) + "% of the rewards")
     return Deltas, EPS
 
 
