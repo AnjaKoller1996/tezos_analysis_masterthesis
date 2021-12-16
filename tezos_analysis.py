@@ -131,44 +131,52 @@ def compute_fractions(start, end, baker):
     return fractions, expected
 
 
+def get_bakers_initial_rewards_at_cycle(cycle):
+    # initialize initial bakers and rewards array
+    bakers = get_baker_at_cycle(0)
+    rewards = get_income_at_cycle(0)
+    initial_totals = [cur.execute('SELECT SUM(total_income) from income_table where cycle=0').fetchall()[0][0]] * 8
+
+    # for every cycle from 0 to cycle, check if baker already exist, if not add it and add its initial_reward
+    for c in range(1, cycle + 1):
+        new_bakers = get_baker_at_cycle(c)
+        for baker in new_bakers:
+            if not baker in bakers:
+                bakers.append(baker)
+                baker_reward = cur.execute(
+                    'SELECT total_income from income_table where address="%s" and cycle=%s' % (baker, c)).fetchall()[0][
+                    0]
+                rewards.append(baker_reward)
+                c_total = cur.execute('SELECT SUM(total_income) from income_table where cycle=%s' % c).fetchall()[0][0]
+                initial_totals.append(c_total)
+    return bakers, rewards, initial_totals
+
+
 def compute_fraction_all_bakers_one_cycle(cycle):
+    initial_bakers, initial_rewards, initial_totals = get_bakers_initial_rewards_at_cycle(cycle)
+    initial_bakers = tuple(initial_bakers)  # convert to tuple
+    # TODO: check length of above 3 arrays
     rewards = []  # actual rewards for all bakers in a specific cycle
-    bakers = get_all_active_bakers()
-    rews = cur.execute('select total_income from income_table where cycle = %s and (address= "%s" or address= "%s" or '
-                       'address ="%s" or address= "%s" or address="%s" or address = "%s" or address= "%s" or address= '
-                       '"%s")' % (cycle, bakers[0],
-                                  bakers[1],
-                                  bakers[2],
-                                  bakers[3],
-                                  bakers[4],
-                                  bakers[5],
-                                  bakers[6],
-                                  bakers[7])).fetchall()
+    rews = cur.execute(
+        'select total_income from income_table where cycle = %s and address IN %s' % (cycle, initial_bakers)).fetchall()
     for init_rew in rews:
         rewards.append(init_rew[0])
     n = len(rewards)
-    # total initial income at cycle 0 over all bakers
-    initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
-    # income at cycle 0 for each individual baker
-    # TODO: this only works for bakers that are active since cycle 0, for others take the first cycle they occur
-    initial_reward = cur.execute('select total_income from income_table where cycle = 0 and (address= "%s" or '
-                                 'address="%s" or address = "%s" or address= "%s" or address= "%s" or address = "%s" '
-                                 'or address= "%s" or address= "%s")' % (
-                                     bakers[0], bakers[1], bakers[2], bakers[3], bakers[4], bakers[5], bakers[6],
-                                     bakers[7])).fetchall()
-    initial_rewards = []  # one entry for every baker
-    for i in initial_reward:
-        initial_rewards.append(i[0])
     # total_rewards at cycle x for all bakers
     total_reward = cur.execute('select sum(total_income) from income_table where cycle = %s' % cycle).fetchall()[0][0]
-
     # Fractions: array of length n, where each entry divides rewards[i]/total_rewards[i] for i = 1 to n
     fractions = []
     expected = []
     for c in range(0, n):  # for all the bakers compute the fractions
-        frac_c = rewards[c] / total_reward
+        if total_reward == 0:
+            frac_c = 0
+        else:
+            frac_c = rewards[c] / total_reward
         fractions.append(frac_c)
-        exp_c = initial_rewards[c] / initial_total
+        if initial_totals[c] == 0:
+            exp_c = 0
+        else:
+            exp_c = initial_rewards[c] / initial_totals[c]
         expected.append(exp_c)
     return fractions, expected
 
@@ -184,9 +192,10 @@ def compute_difference(actual, expected):
 
 
 def get_all_active_bakers():
+    """returns the 8 bakers that are active in all cycle"""
     bakers = []
     bakers_list = cur.execute(
-        'SELECT address from income_table where cycle=0').fetchall()  # only get bakers that are active in all cycles (i.e. 8 bakers)
+        'SELECT address from income_table where cycle=0').fetchall()
     for b in bakers_list:
         bakers.append(b[0])
     return bakers
@@ -197,7 +206,10 @@ def compute_fairness_percentage_one_cycle(cycle):
     n = len(fractions)  # number of bakers
     percentages = []  # contains percentages for all the bakers in a specific cycle
     for p in range(0, n):
-        percent_p = fractions[p] / expected[p]
+        if expected[p] == 0:
+            percent_p = 0
+        else:
+            percent_p = fractions[p] / expected[p]
         percentages.append(percent_p)
     return percentages
 
@@ -420,9 +432,24 @@ def plot_expecational_fairness_all_bakers_overview(start, end, lowest_x, lowest_
     plt.close()
 
 
+def plot_expectational_fairness_all_bakers_per_cycle(start, end):
+    # TODO: for a cycle look at the exp. fairness for all bakers (1 dotline in plot per cycle)
+    x_data = list(range(start, end))  # show cycle start
+    y_datas = compute_fraction_all_bakers_one_cycle(start)
+    for y_data in y_datas:
+        y_data_len = len(y_data)
+        plt.plot(x_data * y_data_len, y_data, '.')  # a point for every baker in that cycle
+    plt.xlabel('Cycle')
+    plt.ylabel('Absolute reward/Expected reward')
+    plt.title('Expectational Fairness for cycle' + str(start) + ' and all bakers')
+    plt.savefig('images/expectational_fairness/expectational_fairness_allbakers_cycle_' + str(start) + '.png')
+    plt.close()
+
+
 def plot_expectational_fairness_all_bakers_cycles(start, end):
     """Plot expectational fairness  for all bakers and cycles, here version with 8 bakers"""
     x_data = list((range(start, end)))
+    # TODO: write this nicer/shorter
     bakers = get_all_active_bakers()
     y_data = compute_fairness_percentage(baker=bakers[0])
     y2_data = compute_fairness_percentage(baker=bakers[1])
@@ -495,27 +522,33 @@ def get_income_at_cycle(cycle):
     return rewards
 
 
-def compute_robust_fairness(cycle):
+def compute_robust_fairness_highest_x(cycle, x):
+    """delta fied to 0.05, see which x% (ex 5%) bakers for this highest 5%
+    check this for multiple cycles, see if they are able to get more rewards"""
+    Deltas, EPS = compute_robust_fairness(cycle, Deltas=np.asarray([0.05]*100))
+    x_percent = int(np.ceil(len(EPS)/(x*100)))
+    # TODO: here make tuples of EPS, Deltas and then take the tuples with the highest values
+    highest_x = np.sort(EPS)[(len(EPS) -x_percent):]
+    highest_y = [] # TODO: impelment
+    # highest_y = # corresponding delta values
+    # TODO: take highest x percent from it
+    # has a small fraction of the bakers the most amount of the rewards?
+    return highest_x, highest_y
+
+
+def compute_robust_fairness(cycle, Deltas=np.linspace(0, 1, 100)):
+    initial_bakers, initial_rewards, initial_totals = get_bakers_initial_rewards_at_cycle(cycle)
     EPS = np.empty([100])
-    Deltas = np.linspace(0, 1, 100)
+    # Deltas = np.linspace(0, 1, 100)
     Epsilons = np.linspace(0, 5, 100)
 
-    # Initialize initial bakers and rewards array
-    initial_bakers = get_baker_at_cycle(0)  # get 8 initial bakers
-    initial_rewards = get_income_at_cycle(0)  # array of length bakers
-
-    # Update initial bakers and rewards array if new bakers occur
-    bakers_cycle = get_baker_at_cycle(cycle)
-    for baker in bakers_cycle:
-        if not (baker in initial_bakers):
-            initial_bakers.append(baker)
-            baker_reward = cur.execute('select total_income from income_table where address="%s" and cycle=%s' % (baker, cycle)).fetchall()[0][0]
-            initial_rewards.append(baker_reward)
-    # TODO: check if we have to adapt initial_total
-    initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
-    initial_stakes = []
-    for i in initial_rewards:
-        init_stake = i / initial_total
+    initial_stakes = []  # check if this array has correct length
+    n = len(initial_rewards)
+    for i in range(0, n):
+        if initial_totals[i] == 0:
+            init_stake = 0
+        else:
+            init_stake = initial_rewards[i] / initial_totals[i]
         initial_stakes.append(init_stake)
 
     # fractions gamma_a
@@ -523,64 +556,15 @@ def compute_robust_fairness(cycle):
     fractions = []  # reward at cycle x divided by total_reward at cycle_x, same length as rewards_array
     total_reward = cur.execute('select sum(total_income) from income_table where cycle=%s' % cycle).fetchall()[0][0]
     for r in rewards_array:
-        fraction_r = r / total_reward
-        fractions.append(fraction_r)
-
-        # convert initial_rewards and fractions to float array
-    initial_stakes = np.fromiter(initial_stakes, dtype=float)  # length of num bakers at cycle 0
-    fractions = np.fromiter(fractions, dtype=float)  # length of num bakers at cycle (i.e. current cycle)
-    # TODO: initial_stakes and fractions need to be of same length
-
-    for idx, delta in enumerate(Deltas):
-        for eps in Epsilons:
-            low_eps = (1 - eps) * initial_stakes <= fractions
-            high_eps = fractions <= (1 + eps) * initial_stakes
-            Freq = low_eps * high_eps
-            Pr = sum(Freq) / len(fractions)
-            if Pr >= 1 - delta:
-                EPS[idx] = eps
-                break
-    # TODO: remove this here but check it before if it makes sense
-    #print('EPS', EPS)
-    #print("The bakers put " + str(round(sum(initial_stakes), 4) * 100) + "% of the stakes and received " + str(
-    #    round(sum(fractions), 4) * 100) + "% of the rewards")
-    return Deltas, EPS
-
-
-def compute_robust_fairness_old(cycle):
-    """Robust fairness Pr((1-epsilon)*a <= gamma_a <= (1+epsilon)*a) <= (1-delta)
-        Fix delta, find largest epsilon EPS for which above equation is true
-        gamma_a: fraction that baker A receives of total reward,
-        a: initial resource of Baker A
-        address: address of baker A
-        epsilon: between 0 and 1
-        delta: >=1
-        Version one cycle all bakers"""
-    EPS = np.empty([100])
-    Deltas = np.linspace(0, 1, 100)
-    Epsilons = np.linspace(0, 5, 100)  # epsilon > 1 needed for very small deltas
-
-    # initial_rewards a
-    initial_rewards = get_income_at_cycle(0)  # length of num_bakers at cycle 0
-    initial_total = cur.execute('select sum(total_income) from income_table where cycle = 0').fetchall()[0][0]
-    initial_stakes = []
-    for i in initial_rewards:
-        init_stake = i / initial_total
-        initial_stakes.append(init_stake)
-
-    # fractions gamma_a
-    rewards_array = get_income_at_cycle(cycle)  # length of num_bakers at cycle (for ex at cycle 5 this has length 8)
-
-    fractions = []  # reward at cycle x divided by total_reward at cycle_x, same length as rewards_array
-    total_reward = cur.execute('select sum(total_income) from income_table where cycle=%s' % cycle).fetchall()[0][0]
-    for r in rewards_array:
-        fraction_r = r / total_reward
+        if total_reward == 0:
+            fraction_r = 0
+        else:
+            fraction_r = r / total_reward
         fractions.append(fraction_r)
 
     # convert initial_rewards and fractions to float array
     initial_stakes = np.fromiter(initial_stakes, dtype=float)  # length of num bakers at cycle 0
     fractions = np.fromiter(fractions, dtype=float)  # length of num bakers at cycle (i.e. current cycle)
-    # TODO: initial_stakes and fractions need to be of same length
 
     for idx, delta in enumerate(Deltas):
         for eps in Epsilons:
@@ -591,9 +575,9 @@ def compute_robust_fairness_old(cycle):
             if Pr >= 1 - delta:
                 EPS[idx] = eps
                 break
-    print('EPS', EPS)
-    print("The bakers put " + str(round(sum(initial_stakes), 4) * 100) + "% of the stakes and received " + str(
-        round(sum(fractions), 4) * 100) + "% of the rewards")
+    # print('EPS', EPS)
+    # print("The bakers put " + str(round(sum(initial_stakes), 4) * 100) + "% of the stakes and received " + str(
+    #    round(sum(fractions), 4) * 100) + "% of the rewards")
     return Deltas, EPS
 
 
@@ -637,7 +621,7 @@ def get_baker_rewards_per_cycle_sorted(cycle):
 
 
 def compute_nakamoto_index(start, end):
-    num_cycles = end-start
+    num_cycles = end - start
     num_bakers = [0] * num_cycles  # array with number of bakers per cycle needed for > 50%
     total_rewards_per_cycle = get_total_rewards_per_cycle(start, end)
     num_bakers_per_cycle = get_num_baker_per_cycle(start, end)
@@ -650,7 +634,7 @@ def compute_nakamoto_index(start, end):
         while i <= len(baker_rewards_sorted_c):  # while not all bakers in the cycle watched
             if baker_rewards_c_summed > (total_rewards_per_cycle[c] / 2):  # reach >50%
                 num_bakers[c] = num_bakers_c
-                break # stop while loop when this condition is met
+                break  # stop while loop when this condition is met
             else:  # if not > 50% then add one (current baker), and add the reward of the current baker
                 num_bakers_c += 1
                 baker_rewards_c_summed += baker_rewards_sorted_c[i]
@@ -658,15 +642,15 @@ def compute_nakamoto_index(start, end):
 
     num_bakers_fraction = []
     for n in num_bakers:
-        num_bakers_fraction.append(n/num_bakers_per_cycle[n])
+        num_bakers_fraction.append(n / num_bakers_per_cycle[n])
     return num_bakers_fraction
 
 
 def compute_aoc(start, end):
     """computes the area under the curve for robust fairness for all the cycles from start to end"""
-    areas = [] # array of length cycles, contains for each cycle the area under the curve of robust fairness
-    num_cycles = end-start
-    for cycle in range(start+1, end):
+    areas = []  # array of length cycles, contains for each cycle the area under the curve of robust fairness
+    num_cycles = end - start
+    for cycle in range(start + 1, end):
         Deltas, EPS = compute_robust_fairness(cycle)  # on x axis the Deltas, on y axis EPS values
         area_cycle = trapz(EPS, dx=num_cycles)  # compute area using composite trapezoidal rule, dx indicates spacing
         # area_cycle = trapz(EPS, x=Deltas, axis= -1)
@@ -691,7 +675,7 @@ def plot_nakamoto_index(start, end):
 
 
 def plot_robust_fairness_aoc(start, end):
-    x_data = list((range(start+1, end)))
+    x_data = list((range(start + 1, end)))
     y_data = compute_aoc(start, end)
     plt.xlabel('Cycle')
     plt.ylabel('Area')
@@ -749,38 +733,47 @@ if __name__ == '__main__':
     # Expectational Fairness
     baker = "tz3RDC3Jdn4j15J7bBHZd29EUee9gVB1CxD9"
     baker_2 = 'tz3NExpXn9aPNZPorRE4SdjJ2RGrfbJgMAaV'
-    plot_expectational_fairness(0, 8, baker)
-    for start, end in zip(start_cycles, end_cycles):
-        plot_expectational_fairness(start, end, baker)
+    # TODO: compute expectational fairness in a more efficient way
+    # plot_expectational_fairness(0, 8, baker)
+    # for start, end in zip(start_cycles, end_cycles):
+    #    plot_expectational_fairness(start, end, baker)
 
     # expectational fairness with difference of expected and actual reward difference on y axis
-    plot_expectational_fairness_difference(0, 8, baker)
-    plot_expectational_fairness_difference(0, 8, baker_2)
+    # plot_expectational_fairness_difference(0, 8, baker)
+    # plot_expectational_fairness_difference(0, 8, baker_2)
     # for start, end in zip(start_cycles, end_cycles):
     #     plot_expectational_fairness_difference(start, end, baker)
 
-    plot_expectational_fairness_all_bakers_cycles_average(0, 8)
+    # TODO: average does not say much look at highest 95% etc.
+    # plot_expectational_fairness_all_bakers_cycles_average(0, 8)
+    plot_expectational_fairness_all_bakers_cycles_average(0, 398)
+
+    # Look at some individual cycles and compute all bakers, compare several cycles in different eras
+    # plot_expectational_fairness_all_bakers_per_cycle(103, 104)
+    # expectational fairness at individual cycles for all bakers, look at cycles in each era
+    # TODO: note if there are differences among the eras
+    era_cycles = [130, 200, 250, 300, 340, 370, 395]
+    # for cycle in era_cycles:
+    #    plot_expectational_fairness_all_bakers_per_cycle(cycle, cycle+1)
 
     # highest x percent
-    plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 8, 0.1)
-    plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 398, 0.1)
+    # plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 8, 0.1)
+    # plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 398, 0.1)
     # expectational fairness plot for cycles 0 to 8, with average, highest 30%, lowest 10%, lowest 25%
-    plot_expecational_fairness_all_bakers_overview(0, 8, 0.1, 0.25, 0.3)
+    # plot_expecational_fairness_all_bakers_overview(0, 8, 0.1, 0.25, 0.3)
+    plot_expecational_fairness_all_bakers_overview(0, 398, 0.1, 0.25, 0.3)
 
     # Robust fairness (we fix delta and a specific cycle and find epsilon)
-    # plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
+    plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
     plot_robust_fairness(5)
-    plot_robust_fairness(6) # TODO: check this
+    plot_robust_fairness(6)  # TODO: check this
     # plot a robust fairness for every era (one cycle in each era)
-    # TODO: modify robust fairness -> check if a baker occurs a first time (in every cycle)
-    era_cycles = [150, 200, 250, 300, 340, 370, 395]
     for c in era_cycles:
         plot_robust_fairness(c)
 
     # Area under curve robust fairness
     plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
-    plot_robust_fairness_aoc(0, 398) # TODO: not possible to do for every cycle as some as at some points array
-    #  sizes switch -> 8 bakers to 28 bakers at cycle 6 for example
+    plot_robust_fairness_aoc(0, 398)
 
     #  Nakamoto index
     plot_nakamoto_index(0, 398)
