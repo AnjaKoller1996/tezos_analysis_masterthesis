@@ -673,30 +673,33 @@ def compute_robust_fairness_all_bakers_new(cycle):
     # TODO: make robust fairness out of this
     cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict = get_bakers_initial_values_fairness()
 
+    initial_stakes = []
+    fractions = []
+
     robust_fairness_list = []
-    for cycle in range(cycle, cycle+1):  # for all cycles
-        rewards_per_baker_in_cycle = dict(
-            cur.execute('SELECT address,total_income from income_table where cycle=%s' % cycle).fetchall())
-        total_reward_cycle = cycle_total_reward_dict[cycle]
-        for baker in cycle_list_of_active_bakers_dict[cycle]:
-            baker_cycle_reward = rewards_per_baker_in_cycle[baker]
+    rewards_per_baker_in_cycle = dict(
+        cur.execute('SELECT address,total_income from income_table where cycle=%s' % cycle).fetchall())
+    total_reward_cycle = cycle_total_reward_dict[cycle]
+    for baker in cycle_list_of_active_bakers_dict[cycle]:
+        baker_cycle_reward = rewards_per_baker_in_cycle[baker]
+        baker_initial_reward = baker_initial_reward_dict[baker]
+        baker_initial_cycle = baker_initial_cycle_dict[baker]
+        baker_initial_cycle_total_reward = cycle_total_reward_dict[baker_initial_cycle]
 
-            baker_initial_reward = baker_initial_reward_dict[baker]
-            baker_initial_cycle = baker_initial_cycle_dict[baker]
-            baker_initial_cycle_total_reward = cycle_total_reward_dict[baker_initial_cycle]
-
-        # expectational fairness computation
         if baker_initial_cycle_total_reward == 0 or baker_cycle_reward == 0:
-            exp_fairness = 0
+            init_stake = 0
+            fraction = 0
         else:
-            exp_fairness = (baker_initial_reward / baker_initial_cycle_total_reward) / (
-                        baker_cycle_reward / total_reward_cycle)
-        robust_fairness_list.append(exp_fairness)
+            init_stake = baker_initial_reward / baker_initial_cycle_total_reward
+            fraction = baker_cycle_reward / total_reward_cycle
+        initial_stakes.append(init_stake)
+        fractions.append(fraction)
+
+    # TODO: debug this here above
+    return initial_stakes, fractions
 
 
-    # TODO: use this values above to compute robust fairness
-
-
+# TODO: modify this below so that it uses compute_robust_fairness_all_bakers_new to compute robust fairness intai of the getbakersinitialrewardsatcycle
 def compute_robust_fairness(cycle, Deltas=np.linspace(0, 1, 100)):
     initial_bakers, initial_rewards, initial_totals = get_bakers_initial_rewards_at_cycle(cycle)
     EPS = np.empty([100])
