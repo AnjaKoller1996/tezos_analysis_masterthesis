@@ -538,11 +538,12 @@ def plot_expectational_fairness_all_bakers_per_cycle(start, end):
 def plot_expectational_fairness_all_bakers_all_cycles_average(expectational_fairness_list):
     """we have a list for each cycle where every baker has its exp fairness value -> take average per cycle"""
     x_data = list(range(0, 398))
-    y_data = []
-    for exp in expectational_fairness_list:
-        y = np.mean(exp)
-        y_data.append(y)
-    plt.plot(x_data, y_data, '.')  # exactly one value for each cycle
+    for c in x_data:  # for every cycle take the average
+        exp_c = expectational_fairness_list[c]
+        exp_c_mean = np.mean(exp_c)
+        plt.plot(c, exp_c_mean, '.')
+    plt.xlabel('Cycle')
+    plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness for all cycles and all bakers average')
     plt.savefig('images/expectational_fairness/exp_fairness_allcycles_avg.png')
     plt.close()
@@ -572,7 +573,23 @@ def plot_expectational_fairness_all_bakers_all_cycles_highest_x(expectational_fa
         x_data = [c] * len(exp_c_sorted[last_n:])
         plt.plot(x_data, exp_c_sorted[last_n:], '.')  # print only the highest x values per cycle
    plt.title('Expectational Fairness highest ' + str(x) + ' percent')
+   plt.xlabel('Cycles')
+   plt.ylabel('Absolute reward/Expected reward')
    plt.savefig('images/expectational_fairness/exp_fairness_highest_' + str(x) + '.png')
+   plt.close()
+
+
+def plot_expectational_fairness_all_bakers_all_cycles_lowest_x(expectational_fairness_list, x):
+   for c in range(0, 398):
+        num_lowest_x = int(np.ceil((len(expectational_fairness_list[c]) / 100) * x))
+        first_n = len(expectational_fairness_list[c]) - num_lowest_x
+        exp_c_sorted = np.sort(expectational_fairness_list[c])
+        x_data = [c] * len(exp_c_sorted[:first_n])
+        plt.plot(x_data, exp_c_sorted[:first_n], '.')  # print only the highest x values per cycle
+   plt.title('Expectational Fairness lowest ' + str(x) + ' percent')
+   plt.xlabel('Cycles')
+   plt.ylabel('Absolute reward/Expected reward')
+   plt.savefig('images/expectational_fairness/exp_fairness_lowest_' + str(x) + '.png')
    plt.close()
 
 
@@ -890,7 +907,8 @@ if __name__ == '__main__':
 
     cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict = get_bakers_initial_values_fairness()
     exp_fairness_list = compute_expectational_fairness_all_cycles(cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
-    plot_expectational_fairness_all_bakers_all_cycles_highest_x(exp_fairness_list, 5)  # TODO: check this
+    plot_expectational_fairness_all_bakers_all_cycles_highest_x(exp_fairness_list, 5)
+    plot_expectational_fairness_all_bakers_all_cycles_lowest_x(exp_fairness_list, 5)
     plot_expectational_fairness_all_bakers_all_cycles(exp_fairness_list)
     plot_expectational_fairness_all_bakers_all_cycles_average(exp_fairness_list)  # average over all bakers in each cycle
 
