@@ -650,13 +650,16 @@ def compute_aoc(start, end):
     """computes the area under the curve for robust fairness for all the cycles from start to end"""
     areas = []  # array of length cycles, contains for each cycle the area under the curve of robust fairness
     num_cycles = end - start
-    for cycle in range(start + 1, end):
+    for cycle in range(start, end+1):
         Deltas, EPS = compute_robust_fairness(cycle)  # on x axis the Deltas, on y axis EPS values
-        area_cycle = trapz(EPS, dx=num_cycles)  # compute area using composite trapezoidal rule, dx indicates spacing
+        print('len deltas', len(Deltas))
+        print('len eps', len(EPS))
+        area_cycle = trapz(EPS, dx=num_cycles-1)  # compute area using composite trapezoidal rule, dx indicates spacing
         # area_cycle = trapz(EPS, x=Deltas, axis= -1)
         # dx: we have 100 values from 0 to 1 -> take 100 steps? TODO: is this accurate when our steps are not equally?
         areas.append(area_cycle)
     print(areas)
+    print(len(areas))
     return areas
 
 
@@ -677,6 +680,8 @@ def plot_nakamoto_index(start, end):
 def plot_robust_fairness_aoc(start, end):
     x_data = list((range(start + 1, end)))
     y_data = compute_aoc(start, end)
+    print(len(x_data))
+    print('ydatalength', len(y_data))
     plt.xlabel('Cycle')
     plt.ylabel('Area')
     plt.plot(x_data, y_data)
