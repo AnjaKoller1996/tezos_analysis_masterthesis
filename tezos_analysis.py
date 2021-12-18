@@ -739,10 +739,19 @@ def get_baker_rewards_per_cycle_sorted(cycle):
     return baker_rewards_sorted
 
 
+def get_total_rewards_per_cycle(start, end):
+    """return total rewards (of all bakers) per cycle"""
+    total_rewards_per_cycle = []  # array with total reward in each cycle
+    total_rew_cycle = cur.execute('SELECT SUM(total_income) from income_table where cycle >=%s and cycle <=%s group '
+                                  'by cycle' % (start, end)).fetchall()
+    for tw in total_rew_cycle:
+        total_rewards_per_cycle.append(tw[0])
+    return total_rewards_per_cycle
+
+
 def compute_nakamoto_index(start, end):
     num_cycles = end - start
     num_bakers = [0] * num_cycles  # array with number of bakers per cycle needed for > 50%
-    # TODO: get total_rewards_per_cycle not defined
     total_rewards_per_cycle = get_total_rewards_per_cycle(start, end)
     num_bakers_per_cycle = get_num_baker_per_cycle(start, end)
 
@@ -793,8 +802,10 @@ def plot_nakamoto_index(start, end):
 # TODO: check this -> Do we need sorting?
 def plot_nakamoto_index_num_bakers(start, end):
     """Plots nakamoto index on y axis and num_bakers (in each cycle) on x axis"""
-    x_data = get_num_bakers_income_table_per_cycle_list(start, end) # get number of bakers in each cycle
+    x_data = get_num_bakers_income_table_per_cycle_list(start, end) #  get number of bakers in each cycle
     y_data = compute_nakamoto_index(start, end)
+    nakamoto_num_bakers = dict(zip(x_data, y_data))
+    # TODO: sort this dict ascending and then take the x and y value again separate and plot
     # TODO: make dicts of the x and y data and sort the x_data ascending and then have the corresponding y_data
     plt.plot(x_data, y_data)
     plt.xlabel('Number of Bakers (Cycle)')
@@ -912,8 +923,8 @@ if __name__ == '__main__':
 
     # Area under curve robust fairness
     # TODO: comment this out as it takes long
-    plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
-    plot_robust_fairness_aoc(0, 398)
+    #plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
+    #plot_robust_fairness_aoc(0, 398)
 
     # TODO: 3) Compute robust fairness_highest_x
 
