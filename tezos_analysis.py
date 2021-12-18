@@ -669,8 +669,8 @@ def get_income_at_cycle(cycle):
     return rewards
 
 
-def compute_robust_fairness_all_bakers_new(cycle):
-    # TODO: make robust fairness out of this
+def get_stakes_and_fractions(cycle):
+    """Computes robust fairness for a specific cycle for all bakers"""
     cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict = get_bakers_initial_values_fairness()
 
     initial_stakes = []
@@ -695,42 +695,18 @@ def compute_robust_fairness_all_bakers_new(cycle):
         initial_stakes.append(init_stake)
         fractions.append(fraction)
 
-    # TODO: debug this here above
     return initial_stakes, fractions
 
 
-# TODO: modify this below so that it uses compute_robust_fairness_all_bakers_new to compute robust fairness intai of the getbakersinitialrewardsatcycle
 def compute_robust_fairness(cycle, Deltas=np.linspace(0, 1, 100)):
-    initial_bakers, initial_rewards, initial_totals = get_bakers_initial_rewards_at_cycle(cycle)
+    """Robust fairness for one specific cycle and all bakers"""
     EPS = np.empty([100])
     # Deltas = np.linspace(0, 1, 100)
     Epsilons = np.linspace(0, 5, 100)
 
-    initial_stakes = []  # check if this array has correct length
-    n = len(initial_rewards)
-    for i in range(0, n):
-        if initial_totals[i] == 0:
-            init_stake = 0
-        else:
-            init_stake = initial_rewards[i] / initial_totals[i]
-        initial_stakes.append(init_stake)
-
-    # fractions gamma_a
-    rewards_array = get_income_at_cycle(cycle)  # length of num_bakers at cycle (for ex at cycle 5 this has length 8)
-    fractions = []  # reward at cycle x divided by total_reward at cycle_x, same length as rewards_array
-    total_reward = cur.execute('select sum(total_income) from income_table where cycle=%s' % cycle).fetchall()[0][0]
-    for r in rewards_array:
-        if total_reward == 0:
-            fraction_r = 0
-        else:
-            fraction_r = r / total_reward
-        fractions.append(fraction_r)
-
-    # convert initial_rewards and fractions to float array
-    # TODO: check that these have same length
+    initial_stakes, fractions = get_stakes_and_fractions(cycle)
     initial_stakes = np.fromiter(initial_stakes, dtype=float)  # length of num bakers at cycle 0
     fractions = np.fromiter(fractions, dtype=float)  # length of num bakers at cycle (i.e. current cycle)
-
     for idx, delta in enumerate(Deltas):
         for eps in Epsilons:
             low_eps = (1 - eps) * initial_stakes <= fractions
@@ -740,9 +716,6 @@ def compute_robust_fairness(cycle, Deltas=np.linspace(0, 1, 100)):
             if Pr >= 1 - delta:
                 EPS[idx] = eps
                 break
-    # print('EPS', EPS)
-    # print("The bakers put " + str(round(sum(initial_stakes), 4) * 100) + "% of the stakes and received " + str(
-    #    round(sum(fractions), 4) * 100) + "% of the rewards")
     return Deltas, EPS
 
 
@@ -943,15 +916,15 @@ if __name__ == '__main__':
     #plot_expecational_fairness_all_bakers_overview(0, 398, 0.1, 0.25, 0.3)
 
     # Robust fairness (we fix delta and a specific cycle and find epsilon)
-    #plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
-    #plot_robust_fairness(5)
-    #plot_robust_fairness(6)  # TODO: check this
+    plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
+    plot_robust_fairness(5)
+    plot_robust_fairness(6)
     # plot a robust fairness for every era (one cycle in each era)
-    #for c in era_cycles:
-    #    plot_robust_fairness(c)
+    for c in era_cycles:
+        plot_robust_fairness(c)
 
     # Area under curve robust fairness
-    #plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
+    # plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
     #plot_robust_fairness_aoc(0, 398)
 
     # TODO: 3) Compute robust fairness_highest_x
