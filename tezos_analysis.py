@@ -47,6 +47,14 @@ def compute_gini_all_bakers_per_cycle(start, end):
     return gini_indexes_list
 
 
+def get_num_bakers_income_table_per_cycle_list(start, end):
+    num_bakers_list = []
+    for c in range(start, end):
+        num_bakers_c = cur.execute('SELECT COUNT(DISTINCT(address)) FROM income_table where cycle=%s' %c).fetchall()[0][0]
+        num_bakers_list.append(num_bakers_c)
+    return num_bakers_list
+
+
 def compute_num_working_bakers_per_cycle_list():
     num_bakers_list = []
     num_working_bakers = cur.execute('SELECT working_bakers FROM cycles GROUP BY cycle').fetchall()
@@ -557,7 +565,7 @@ def plot_expectational_fairness_all_bakers_all_cycles(expectational_fairness_lis
         x_data = c
         for y_data in y_datas[c]:  # plot all exp fairness values in that cycle of all bakers
             plt.plot(x_data, y_data, '.')
-    # TODO: for better visibility maybe filer out all that are 0 at first sight
+    # TODO: for better visibility maybe filter out all that are 0 at first sight
     plt.xlabel('Cycle')
     plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness for all cycles and all bakers (New Version)')
@@ -593,35 +601,7 @@ def plot_expectational_fairness_all_bakers_all_cycles_lowest_x(expectational_fai
    plt.close()
 
 
-def plot_expectational_fairness_all_bakers_cycles(start, end):
-    """Plot expectational fairness  for all bakers and cycles, here version with 8 bakers"""
-    x_data = list((range(start, end)))
-    # TODO: write this nicer/shorter
-    bakers = get_all_active_bakers()
-    y_data = compute_fairness_percentage(baker=bakers[0])
-    y2_data = compute_fairness_percentage(baker=bakers[1])
-    y3_data = compute_fairness_percentage(baker=bakers[2])
-    y4_data = compute_fairness_percentage(baker=bakers[3])
-    y5_data = compute_fairness_percentage(baker=bakers[4])
-    y6_data = compute_fairness_percentage(baker=bakers[5])
-    y7_data = compute_fairness_percentage(baker=bakers[6])
-    y8_data = compute_fairness_percentage(baker=bakers[7])
-    plt.plot(x_data, y_data, '.', color='black', label='baker1')
-    plt.plot(x_data, y2_data, '.', color='blue', label='baker2')
-    plt.plot(x_data, y3_data, '.', color='green', label='baker3')
-    plt.plot(x_data, y4_data, '.', color='orange', label='baker4')
-    plt.plot(x_data, y5_data, '.', color='red', label='baker5')
-    plt.plot(x_data, y6_data, '.', color='grey', label='baker6')
-    plt.plot(x_data, y7_data, '.', color='purple', label='baker7')
-    plt.plot(x_data, y8_data, '.', color='yellow', label='baker8')
-    plt.xlabel('Cycle')
-    plt.legend()
-    plt.ylabel('Absolute reward/Expected reward')
-    plt.title('Expectational Fairness for all cycles and all bakers')
-    plt.savefig('images/expectational_fairness/expectational_fairness_allbakers_allcycles.png')
-    plt.close()
-
-
+# TODO: redo this
 def plot_expectational_fairness(start, end, baker):
     """the expectation of the fraction of the reward that baker A receives of the total reward should be equal to his
     initial resource a --> on x axis we have the number of blocks/cycles and on the y axis the fraction of the total
@@ -639,6 +619,7 @@ def plot_expectational_fairness(start, end, baker):
     plt.close()
 
 
+# TODO: redo this
 def plot_expectational_fairness_difference(start, end, baker):
     x_data = list((range(start, end + 1)))
     actual, expected = compute_fractions(start, end, baker)
@@ -761,6 +742,7 @@ def get_baker_rewards_per_cycle_sorted(cycle):
 def compute_nakamoto_index(start, end):
     num_cycles = end - start
     num_bakers = [0] * num_cycles  # array with number of bakers per cycle needed for > 50%
+    # TODO: get total_rewards_per_cycle not defined
     total_rewards_per_cycle = get_total_rewards_per_cycle(start, end)
     num_bakers_per_cycle = get_num_baker_per_cycle(start, end)
 
@@ -784,20 +766,12 @@ def compute_nakamoto_index(start, end):
     return num_bakers_fraction
 
 
-def compute_aoc(start, end):
+def compute_aoc(cycle):
     """computes the area under the curve for robust fairness for all the cycles from start to end"""
-    areas = []  # array of length cycles, contains for each cycle the area under the curve of robust fairness
-    num_cycles = end - start
-    for cycle in range(start, end+1):
-        Deltas, EPS = compute_robust_fairness(cycle)  # on x axis the Deltas, on y axis EPS values
-        print('len deltas', len(Deltas))
-        print('len eps', len(EPS))
-        area_cycle = trapz(EPS, dx=num_cycles-1)  # compute area using composite trapezoidal rule, dx indicates spacing
-        # area_cycle = trapz(EPS, x=Deltas, axis= -1)
-        # dx: we have 100 values from 0 to 1 -> take 100 steps? TODO: is this accurate when our steps are not equally?
-        areas.append(area_cycle)
-    print(areas)
-    print(len(areas))
+    Deltas, EPS = compute_robust_fairness(cycle)
+    EPS = np.asarray(EPS)
+    areas = np.sum(0.01 * EPS)
+    # other solution trapezoidal rule=> areas = trapz(EPS, dx=0.01)
     return areas
 
 
@@ -806,6 +780,7 @@ def plot_nakamoto_index(start, end):
     have more than 50% of the stake, this can fluctuate, but if it has a general tendency to go down, then it gets
     unfair as we have a few very big players """
     x_data = list((range(start, end)))
+    # TODO: fix this compute method -> get_tota_rewards_per_cycle not defined
     y_data = compute_nakamoto_index(start, end)
     plt.plot(x_data, y_data)
     plt.xlabel('Cycle')
@@ -815,14 +790,26 @@ def plot_nakamoto_index(start, end):
     plt.close()
 
 
+# TODO: check this -> Do we need sorting?
+def plot_nakamoto_index_num_bakers(start, end):
+    """Plots nakamoto index on y axis and num_bakers (in each cycle) on x axis"""
+    x_data = get_num_bakers_income_table_per_cycle_list(start, end) # get number of bakers in each cycle
+    y_data = compute_nakamoto_index(start, end)
+    # TODO: make dicts of the x and y data and sort the x_data ascending and then have the corresponding y_data
+    plt.plot(x_data, y_data)
+    plt.xlabel('Number of Bakers (Cycle)')
+    plt.ylabel('Percentage of bakers to reach > 50%')
+    plt.title('Nakamoto Index for each cycle from ' + str(start) + ' to ' + str(end))
+    plt.savefig('images/Nakamoto_index_num_bakers' + str(start) + '_' + str(end) + '.png')
+    plt.close()
+
+
 def plot_robust_fairness_aoc(start, end):
-    x_data = list((range(start + 1, end)))
-    y_data = compute_aoc(start, end)
-    print(len(x_data))
-    print('ydatalength', len(y_data))
+    for x in range(start, end):
+        y_data = compute_aoc(x)
+        plt.plot(x, y_data, '.')
     plt.xlabel('Cycle')
     plt.ylabel('Area')
-    plt.plot(x_data, y_data)
     plt.title('Robust fairness Area under Curve per Cycle from ' + str(start) + ' to ' + str(end))
     plt.savefig('images/robust_fairness/area_under_curve_' + str(start) + '_' + str(end) + '.png')
     plt.close()
@@ -924,12 +911,11 @@ if __name__ == '__main__':
         plot_robust_fairness(c)
 
     # Area under curve robust fairness
-    # plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
-    #plot_robust_fairness_aoc(0, 398)
+    # TODO: comment this out as it takes long
+    plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
+    plot_robust_fairness_aoc(0, 398)
 
     # TODO: 3) Compute robust fairness_highest_x
-
-    # TODO: 2) Compute Nakamoto index with num bakers in network on x axis
 
     # TODO: 4) Compute mean reward plot, i.e. cycles on x axis, percentage of total reward on y axis, plot a line
     #  with the mean reward over all bakers and then plot the relative difference to this for every baker
@@ -937,6 +923,11 @@ if __name__ == '__main__':
     #  Nakamoto index
     plot_nakamoto_index(0, 398)
     plot_nakamoto_index(0, 8)
+
+    # TODO: 2) Compute Nakamoto index with num bakers in network on x axis
+    # Nakamoto index with num bakers in network on x axis
+    # plot_nakamoto_index_num_bakers(0, 8)
+    # plot_nakamoto_index_num_bakers(0,398)
 
     # Close connection
     con.close()
