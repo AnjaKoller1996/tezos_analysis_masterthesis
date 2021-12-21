@@ -327,11 +327,9 @@ def plot_income_rewards_gini_index(start, end):
 
 def plot_expectational_fairness_all_bakers_all_cycles_average(expectational_fairness_list):
     """we have a list for each cycle where every baker has its exp fairness value -> take average per cycle"""
-    x_data = list(range(0, 398))
-    for c in x_data:  # for every cycle take the average
-        exp_c = expectational_fairness_list[c]
-        exp_c_mean = np.mean(exp_c)
-        plt.plot(c, exp_c_mean, '.')
+    x_data_avg, y_data_avg = compute_expectational_fairness_avg(expectational_fairness_list)
+    plt.plot(x_data_avg, y_data_avg, color='red')
+    plt.plot()
     plt.xlabel('Cycle')
     plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness for all cycles and all bakers average')
@@ -357,11 +355,8 @@ def plot_expectational_fairness_all_bakers_all_cycles(expectational_fairness_lis
 
 def plot_expectational_fairness_all_bakers_all_cycles_highest_x(expectational_fairness_list, x):
     for c in range(0, 398):
-        num_highest_x = int(np.ceil((len(expectational_fairness_list[c]) / 100) * x))
-        last_n = len(expectational_fairness_list[c]) - num_highest_x
-        exp_c_sorted = np.sort(expectational_fairness_list[c])
-        x_data = [c] * len(exp_c_sorted[last_n:])
-        plt.plot(x_data, exp_c_sorted[last_n:], '.')  # print only the highest x values per cycle
+        x_data, y_data = compute_expectational_fairness_highest_x_cycle(expectational_fairness_list, x, c)
+        plt.plot(x_data, y_data, '.')
     plt.title('Expectational Fairness highest ' + str(x) + ' percent')
     plt.xlabel('Cycles')
     plt.ylabel('Absolute reward/Expected reward')
@@ -369,17 +364,77 @@ def plot_expectational_fairness_all_bakers_all_cycles_highest_x(expectational_fa
     plt.close()
 
 
+def compute_expectational_fairness_lowest_x_cycle(expectational_fairness_list, x, c):
+    num_lowest_x = int(np.ceil((len(expectational_fairness_list[c]) / 100) * x))
+    first_n = len(expectational_fairness_list[c]) - num_lowest_x
+    exp_c_sorted = np.sort(expectational_fairness_list[c])
+    x_data = [c] * len(exp_c_sorted[:first_n])
+    y_data = exp_c_sorted[:first_n]
+    x_data = np.asarray(x_data)
+    y_data = np.asarray(y_data)
+    return x_data, y_data
+
+
+def compute_expectational_fairness_highest_x_cycle(expectational_fairness_list, x, c):
+    num_highest_x = int(np.ceil((len(expectational_fairness_list[c]) / 100) * x))
+    last_n = len(expectational_fairness_list[c]) - num_highest_x
+    exp_c_sorted = np.sort(expectational_fairness_list[c])
+    x_data = [c] * len(exp_c_sorted[last_n:])
+    y_data = exp_c_sorted[last_n:]
+    x_data = np.asarray(x_data)
+    y_data = np.asarray(y_data)
+    return x_data, y_data
+
+
+def compute_expectational_fairness_avg(expectational_fairness_list):
+    """Computes avg exp fairness in each cycle"""
+    x_data = list(range(0, 398))
+    y_data = []
+    for c in x_data:  # for every cycle take the average
+        exp_c = expectational_fairness_list[c]
+        exp_c_mean = np.mean(exp_c) # one value per cycle (mean over all bakers
+        y_data.append(exp_c_mean)
+    x_data = np.asarray(x_data)
+    y_data = np.asarray(y_data)
+    return x_data, y_data
+
+
 def plot_expectational_fairness_all_bakers_all_cycles_lowest_x(expectational_fairness_list, x):
     for c in range(0, 398):
-        num_lowest_x = int(np.ceil((len(expectational_fairness_list[c]) / 100) * x))
-        first_n = len(expectational_fairness_list[c]) - num_lowest_x
-        exp_c_sorted = np.sort(expectational_fairness_list[c])
-        x_data = [c] * len(exp_c_sorted[:first_n])
-        plt.plot(x_data, exp_c_sorted[:first_n], '.')  # print only the highest x values per cycle
+        x_data, y_data = compute_expectational_fairness_lowest_x_cycle(expectational_fairness_list, x, c)
+        plt.plot(x_data, y_data, '.')
     plt.title('Expectational Fairness lowest ' + str(x) + ' percent')
     plt.xlabel('Cycles')
     plt.ylabel('Absolute reward/Expected reward')
     plt.savefig('images/expectational_fairness/exp_fairness_lowest_' + str(x) + '.png')
+    plt.close()
+
+
+# TODO: debug
+def plot_expectational_fairness_overview(expectational_fairness_list, x):
+    """plot expectational fairness average, highest x and lowest x in one plot"""
+    x_datas = []
+    y_datas = []
+    x_datas_high = []
+    y_datas_high = []
+    for c in range(0, 398):
+        x_data, y_data = compute_expectational_fairness_lowest_x_cycle(expectational_fairness_list, x, c)
+        x_datas.append(x_data)
+        y_datas.append(y_data)
+        #plt.plot(x_data, y_data, '.', color='blue', label='lowest %x' % x)
+        x_data_high, y_data_high = compute_expectational_fairness_highest_x_cycle(expectational_fairness_list, x,c)
+        x_datas_high.append(x_data_high)
+        y_datas_high.append(y_data_high)
+        #plt.plot(x_data_high, y_data_high, '.', color='green', label='highest %x' % x)
+    x_data_avg, y_data_avg = compute_expectational_fairness_avg(expectational_fairness_list)
+    plt.plot(x_data_avg, y_data_avg, '.', color='red', label='average')
+    plt.plot(x_datas, y_datas, '.', color='blue', label='lowest %x' % x)
+    plt.plot(x_datas_high, y_datas_high, '.', color='green', label='highest %x' % x)
+    plt.legend()
+    plt.title('Expectational Fairness overview')
+    plt.xlabel('Cycles')
+    plt.ylabel('Absolute reward/Expected reward')
+    plt.savefig('images/expectational_fairness/exp_fairness_overview_' + str(x) + '_percent' + '.png')
     plt.close()
 
 
@@ -430,6 +485,21 @@ def get_stakes_and_fractions(cycle):
     return initial_stakes, fractions
 
 
+
+# TODO: implement this with highest x percentile
+def compute_robust_fairness_highest_x(cycle, x):
+    Deltas, EPS = compute_robust_fairness(cycle)
+    # get highest x% values of eps
+    num_highest_x = int(np.ceil((len(EPS) / 100) * x))
+    last_n = len(EPS) - num_highest_x
+    EPS_sorted = np.sort(EPS)
+    # TODO: when we sort zip the EPS and delta so we get the corresponding delta, then work with the corresponding sorted delta
+    Deltas = Deltas[last_n:]
+    EPS = EPS[last_n:]
+    Deltas_highest_x, EPS_highest_x = # take the highest eps values with the corresponding delta (TODO: also do vice versa)
+    return Deltas_highest_x, EPS_highest_x
+
+
 def compute_robust_fairness(cycle, Deltas=np.linspace(0, 1, 100)):
     """Robust fairness for one specific cycle and all bakers"""
     EPS = np.empty([100])
@@ -449,6 +519,16 @@ def compute_robust_fairness(cycle, Deltas=np.linspace(0, 1, 100)):
                 EPS[idx] = eps
                 break
     return Deltas, EPS
+
+
+def plot_robust_fairness_highest_x(cycle, x):
+    x_data, y_data = compute_robust_fairness_highest_x(cycle, x)
+    plt.plot(x_data, y_data)
+    plt.title('Robust Fairness with fixed delta cycle' + str(cycle) + 'highest' + str(x))
+    plt.xlabel('Delta')
+    plt.ylabel('Epsilon')
+    plt.savefig('images/robust_fairness/rob_fairness_cycle_' + str(cycle) + '_highest_' + str(x) + '.png')
+    plt.close()
 
 
 def plot_robust_fairness(cycle):
@@ -682,6 +762,10 @@ if __name__ == '__main__':
     plot_expectational_fairness_all_bakers_all_cycles_average(
         exp_fairness_list)  # average over all bakers in each cycle
 
+    # Exp. Fairness overview plot (avg, lowest 5% resp. 1%, highest 5% resp. 1% in one plot)
+    plot_expectational_fairness_overview(exp_fairness_list, 5)
+    plot_expectational_fairness_overview(exp_fairness_list, 1)
+
     # TODO: look at highest 5% exp fairness and robust fairness
 
     # TODO: Look at some individual cycles and compute all bakers, compare several cycles in different eras
@@ -690,8 +774,6 @@ if __name__ == '__main__':
     era_cycles = [130, 200, 250, 300, 340, 370, 395]
     # for cycle in era_cycles:
         # compute_expectational_fairness_all_cycles # TODO: use this with start, end (ad start end tot he impl -> cylce, cycle+1
-
-    # TODO: overview plot -> expectational fairness plot for cycles 0 to 8, with average, highest 30%, lowest 10%, lowest 25%
 
     # Robust fairness (we fix delta and a specific cycle and find epsilon)
     plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
