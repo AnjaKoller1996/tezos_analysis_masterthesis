@@ -794,7 +794,6 @@ def plot_nakamoto_index(start, end):
     have more than 50% of the stake, this can fluctuate, but if it has a general tendency to go down, then it gets
     unfair as we have a few very big players """
     x_data = list((range(start, end)))
-    # TODO: fix this compute method -> get_tota_rewards_per_cycle not defined
     y_data = compute_nakamoto_index(start, end)
     plt.plot(x_data, y_data)
     plt.xlabel('Cycle')
@@ -804,14 +803,10 @@ def plot_nakamoto_index(start, end):
     plt.close()
 
 
-# TODO: check this -> Do we need sorting?
 def plot_nakamoto_index_num_bakers(start, end):
     """Plots nakamoto index on y axis and num_bakers (in each cycle) on x axis"""
     x_data = get_num_bakers_income_table_per_cycle_list(start, end)  # get number of bakers in each cycle
     y_data = compute_nakamoto_index(start, end)
-    nakamoto_num_bakers = dict(zip(x_data, y_data))
-    # TODO: sort this dict ascending and then take the x and y value again separate and plot
-    # TODO: make dicts of the x and y data and sort the x_data ascending and then have the corresponding y_data
     plt.plot(x_data, y_data, '.')
     plt.xlabel('Number of Bakers (Cycle)')
     plt.ylabel('Percentage of bakers to reach > 50%')
@@ -956,7 +951,7 @@ if __name__ == '__main__':
 
     cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict = get_bakers_initial_values_fairness()
 
-    plot_nakamoto_index_num_bakers(0, 8)
+    plot_nakamoto_index_num_bakers(0, 398)
 
     exp_fairness_list = compute_expectational_fairness_all_cycles(cycle_total_reward_dict, baker_initial_cycle_dict,
                                                                   baker_initial_reward_dict,
@@ -1019,10 +1014,9 @@ if __name__ == '__main__':
     plot_nakamoto_index(0, 398)
     plot_nakamoto_index(0, 8)
 
-    # TODO: 2) Compute Nakamoto index with num bakers in network on x axis
     # Nakamoto index with num bakers in network on x axis
-    # plot_nakamoto_index_num_bakers(0, 8)
-    # plot_nakamoto_index_num_bakers(0,398)
+    plot_nakamoto_index_num_bakers(0, 8)
+    plot_nakamoto_index_num_bakers(0, 398)
 
     # Close connection
     con.close()
