@@ -50,7 +50,8 @@ def compute_gini_all_bakers_per_cycle(start, end):
 def get_num_bakers_income_table_per_cycle_list(start, end):
     num_bakers_list = []
     for c in range(start, end):
-        num_bakers_c = cur.execute('SELECT COUNT(DISTINCT(address)) FROM income_table where cycle=%s' %c).fetchall()[0][0]
+        num_bakers_c = \
+        cur.execute('SELECT COUNT(DISTINCT(address)) FROM income_table where cycle=%s' % c).fetchall()[0][0]
         num_bakers_list.append(num_bakers_c)
     return num_bakers_list
 
@@ -172,9 +173,11 @@ def get_baker_first_cycle_init_rew():
     initial_rewards = []
 
     for baker in bakers:
-        baker_init_rew_cycle = cur.execute('SELECT total_income from income_table where address="%s" limit 1' % baker).fetchall()[0][0]
+        baker_init_rew_cycle = \
+        cur.execute('SELECT total_income from income_table where address="%s" limit 1' % baker).fetchall()[0][0]
         initial_rewards.append(baker_init_rew_cycle)
-        baker_first_cycle = cur.execute('SELECT cycle from income_table where address="%s" limit 1' % baker).fetchall()[0][0]
+        baker_first_cycle = \
+        cur.execute('SELECT cycle from income_table where address="%s" limit 1' % baker).fetchall()[0][0]
         first_cycles.append(baker_first_cycle)
     return bakers, first_cycles, initial_rewards
 
@@ -206,7 +209,7 @@ def get_bakers_initial_values_fairness():
     cycles = [c for c in range(0, 398)]
     cycle_total_reward_dict = dict(zip(cycles, total_rewards_all_cycles))
 
-    bakers_per_cycle = get_active_baker_per_cycle() # list of lists (for all the 398 cycles a list of bakers)
+    bakers_per_cycle = get_active_baker_per_cycle()  # list of lists (for all the 398 cycles a list of bakers)
     cycle_list_of_active_bakers_dict = dict(zip(cycles, bakers_per_cycle))
 
     bakers, first_cycles, initial_rewards = get_baker_first_cycle_init_rew()
@@ -225,7 +228,8 @@ def compute_expectational_fairness_all_cycles(cycle_total_reward_dict,
     """ for all cycles and all bakers which occur in this cycle compute exp. fairness"""
     exp_fairness_list = []
     for cycle in range(0, 398):  # for all cycles
-        rewards_per_baker_in_cycle = dict(cur.execute('SELECT address,total_income from income_table where cycle=%s' % cycle).fetchall())
+        rewards_per_baker_in_cycle = dict(
+            cur.execute('SELECT address,total_income from income_table where cycle=%s' % cycle).fetchall())
         total_reward_cycle = cycle_total_reward_dict[cycle]
         exp_fairness_baker = []
         for baker in cycle_list_of_active_bakers_dict[cycle]:
@@ -237,12 +241,13 @@ def compute_expectational_fairness_all_cycles(cycle_total_reward_dict,
 
             # expectational fairness computation
             if baker_initial_cycle_total_reward == 0 or baker_cycle_reward == 0:
-                exp_fairness = 0 # TODO: set this here to 0 or to 1?
+                exp_fairness = 0  # TODO: set this here to 0 or to 1?
             else:
-                exp_fairness = (baker_initial_reward / baker_initial_cycle_total_reward) / (baker_cycle_reward / total_reward_cycle)
+                exp_fairness = (baker_initial_reward / baker_initial_cycle_total_reward) / (
+                            baker_cycle_reward / total_reward_cycle)
             exp_fairness_baker.append(exp_fairness)
         exp_fairness_list.append(exp_fairness_baker)
-    return exp_fairness_list # array of arrays -> for each cycle an array for each baker
+    return exp_fairness_list  # array of arrays -> for each cycle an array for each baker
 
 
 # TODO: refactor this here & also robust fairness
@@ -533,7 +538,7 @@ def plot_expectational_fairness_all_bakers_per_cycle(start, end):
     # TODO: for a cycle look at the exp. fairness for all bakers (1 dotline in plot per cycle)
     x_data = list(range(start, end))  # show cycle start
     y_datas = compute_fraction_all_bakers_one_cycle(start)
-    for y_data in y_datas: # for all cycles a point for every baker in each cycle
+    for y_data in y_datas:  # for all cycles a point for every baker in each cycle
         y_data_len = len(y_data)
         plt.plot(x_data * y_data_len, y_data, '.')  # a point for every baker in that cycle
     plt.xlabel('Cycle')
@@ -574,31 +579,31 @@ def plot_expectational_fairness_all_bakers_all_cycles(expectational_fairness_lis
 
 
 def plot_expectational_fairness_all_bakers_all_cycles_highest_x(expectational_fairness_list, x):
-   for c in range(0, 398):
+    for c in range(0, 398):
         num_highest_x = int(np.ceil((len(expectational_fairness_list[c]) / 100) * x))
         last_n = len(expectational_fairness_list[c]) - num_highest_x
         exp_c_sorted = np.sort(expectational_fairness_list[c])
         x_data = [c] * len(exp_c_sorted[last_n:])
         plt.plot(x_data, exp_c_sorted[last_n:], '.')  # print only the highest x values per cycle
-   plt.title('Expectational Fairness highest ' + str(x) + ' percent')
-   plt.xlabel('Cycles')
-   plt.ylabel('Absolute reward/Expected reward')
-   plt.savefig('images/expectational_fairness/exp_fairness_highest_' + str(x) + '.png')
-   plt.close()
+    plt.title('Expectational Fairness highest ' + str(x) + ' percent')
+    plt.xlabel('Cycles')
+    plt.ylabel('Absolute reward/Expected reward')
+    plt.savefig('images/expectational_fairness/exp_fairness_highest_' + str(x) + '.png')
+    plt.close()
 
 
 def plot_expectational_fairness_all_bakers_all_cycles_lowest_x(expectational_fairness_list, x):
-   for c in range(0, 398):
+    for c in range(0, 398):
         num_lowest_x = int(np.ceil((len(expectational_fairness_list[c]) / 100) * x))
         first_n = len(expectational_fairness_list[c]) - num_lowest_x
         exp_c_sorted = np.sort(expectational_fairness_list[c])
         x_data = [c] * len(exp_c_sorted[:first_n])
         plt.plot(x_data, exp_c_sorted[:first_n], '.')  # print only the highest x values per cycle
-   plt.title('Expectational Fairness lowest ' + str(x) + ' percent')
-   plt.xlabel('Cycles')
-   plt.ylabel('Absolute reward/Expected reward')
-   plt.savefig('images/expectational_fairness/exp_fairness_lowest_' + str(x) + '.png')
-   plt.close()
+    plt.title('Expectational Fairness lowest ' + str(x) + ' percent')
+    plt.xlabel('Cycles')
+    plt.ylabel('Absolute reward/Expected reward')
+    plt.savefig('images/expectational_fairness/exp_fairness_lowest_' + str(x) + '.png')
+    plt.close()
 
 
 # TODO: redo this
@@ -802,16 +807,86 @@ def plot_nakamoto_index(start, end):
 # TODO: check this -> Do we need sorting?
 def plot_nakamoto_index_num_bakers(start, end):
     """Plots nakamoto index on y axis and num_bakers (in each cycle) on x axis"""
-    x_data = get_num_bakers_income_table_per_cycle_list(start, end) #  get number of bakers in each cycle
+    x_data = get_num_bakers_income_table_per_cycle_list(start, end)  # get number of bakers in each cycle
     y_data = compute_nakamoto_index(start, end)
     nakamoto_num_bakers = dict(zip(x_data, y_data))
     # TODO: sort this dict ascending and then take the x and y value again separate and plot
     # TODO: make dicts of the x and y data and sort the x_data ascending and then have the corresponding y_data
-    plt.plot(x_data, y_data)
+    plt.plot(x_data, y_data, '.')
     plt.xlabel('Number of Bakers (Cycle)')
     plt.ylabel('Percentage of bakers to reach > 50%')
     plt.title('Nakamoto Index for each cycle from ' + str(start) + ' to ' + str(end))
     plt.savefig('images/Nakamoto_index_num_bakers' + str(start) + '_' + str(end) + '.png')
+    plt.close()
+
+
+def compute_mean_rewards(start, end):
+    """Computes mean reward per cycle from cycle start to end"""
+    mean_rewards = []
+    mean_reward = cur.execute(
+        'SELECT AVG(total_income) from income_table where cycle >=%s and cycle <=%s group by cycle' % (
+        start, end)).fetchall()
+    for mr in mean_reward:
+        mean_rewards.append(mr[0])
+    return mean_rewards
+
+
+def get_total_rewards_per_cycle(start, end):
+    """returns total rewards for each cycle from start to end"""
+    total_rewards = []
+    total_reward = cur.execute('SELECT SUM(total_income) from income_table where cycle >=%s and cycle <=%s group by '
+                               'cycle' % (start, end)).fetchall()
+    for tr in total_reward:
+        total_rewards.append(tr[0])
+    return total_rewards
+
+
+def get_rewards_all_bakers(start, end):
+    """rewards is an array of length cycles (end-start) and for each entry at c there is an array with length
+    num_bakers """
+    rewards = []
+    for c in range(start, end + 1):  # for every cycle
+        rewards_c = get_income_at_cycle(c)
+        rewards.append(rewards_c)
+    return rewards
+
+
+def get_relative_rewards(start, end):
+    """returns the relative rewards (relative to the total) for every cycle and baker"""
+    total_rewards = get_total_rewards_per_cycle(start, end)
+    rewards = get_rewards_all_bakers(start, end)
+    relative_rewards = []
+    for c in range(start, end + 1):  # for every cycle
+        rewards_relative_c = [item / total_rewards[c] for item in rewards[c]]
+        relative_rewards.append(rewards_relative_c)
+    return relative_rewards
+
+
+def get_relative_rewards_mean(start, end):
+    total_rewards = get_total_rewards_per_cycle(start, end)
+    mean_rewards = compute_mean_rewards(start, end)
+    mean_rewards_relative = []
+    for c in range(start, end + 1):
+        mean_rewards_relative_c = mean_rewards[c] / total_rewards[c]
+        mean_rewards_relative.append(mean_rewards_relative_c)
+    return mean_rewards_relative
+
+
+def plot_distance_to_mean(start, end):
+    """Plots the relative difference the bakers rewards have compared to the mean total reward per cycle averaged
+    over all bakers per cycle"""
+    x_data = list(range(start, end+1))
+    y2_data = get_relative_rewards_mean(start, end)  # array of length cycle
+    y_data = get_relative_rewards(start, end)  # array (len cycles) of arrays (len num_bakers)
+    plt.plot(x_data, y2_data, color='red', label='relative mean')
+    for c in x_data:
+        for baker in y_data[c]:
+            plt.plot(c, baker, '.')  # for every baker in the cycle make a '.'
+    plt.legend()
+    plt.xlabel('Cycle')
+    plt.ylabel('Relative distance of total_reward to mean')
+    plt.title('Relative Distance to Mean per Cycle from ' + str(start) + ' to ' + str(end))
+    plt.savefig('images/income_distance_' + str(start) + '_' + str(end) + '.png')
     plt.close()
 
 
@@ -880,11 +955,17 @@ if __name__ == '__main__':
     #    plot_expectational_fairness(start, end, baker)
 
     cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict = get_bakers_initial_values_fairness()
-    exp_fairness_list = compute_expectational_fairness_all_cycles(cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+
+    plot_nakamoto_index_num_bakers(0, 8)
+
+    exp_fairness_list = compute_expectational_fairness_all_cycles(cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                                  baker_initial_reward_dict,
+                                                                  cycle_list_of_active_bakers_dict)
     plot_expectational_fairness_all_bakers_all_cycles_highest_x(exp_fairness_list, 5)
     plot_expectational_fairness_all_bakers_all_cycles_lowest_x(exp_fairness_list, 5)
     plot_expectational_fairness_all_bakers_all_cycles(exp_fairness_list)
-    plot_expectational_fairness_all_bakers_all_cycles_average(exp_fairness_list)  # average over all bakers in each cycle
+    plot_expectational_fairness_all_bakers_all_cycles_average(
+        exp_fairness_list)  # average over all bakers in each cycle
 
     # TODO: 1) Check all the robust fairness implementations below and adapt & adapt robust fairness implementation
 
@@ -896,7 +977,7 @@ if __name__ == '__main__':
 
     # TODO: average does not say much look at highest 95% etc.
     # plot_expectational_fairness_all_bakers_cycles_average(0, 8)
-    #plot_expectational_fairness_all_bakers_cycles_average(0, 398)
+    # plot_expectational_fairness_all_bakers_cycles_average(0, 398)
 
     # Look at some individual cycles and compute all bakers, compare several cycles in different eras
     # plot_expectational_fairness_all_bakers_per_cycle(103, 104)
@@ -911,7 +992,7 @@ if __name__ == '__main__':
     # plot_expectational_fairness_all_bakers_cycles_highest_x_percent(0, 398, 0.1)
     # expectational fairness plot for cycles 0 to 8, with average, highest 30%, lowest 10%, lowest 25%
     # plot_expecational_fairness_all_bakers_overview(0, 8, 0.1, 0.25, 0.3)
-    #plot_expecational_fairness_all_bakers_overview(0, 398, 0.1, 0.25, 0.3)
+    # plot_expecational_fairness_all_bakers_overview(0, 398, 0.1, 0.25, 0.3)
 
     # Robust fairness (we fix delta and a specific cycle and find epsilon)
     plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
@@ -923,13 +1004,16 @@ if __name__ == '__main__':
 
     # Area under curve robust fairness
     # TODO: comment this out as it takes long
-    #plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
-    #plot_robust_fairness_aoc(0, 398)
+    # plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
+    # plot_robust_fairness_aoc(0, 398)
 
     # TODO: 3) Compute robust fairness_highest_x
 
-    # TODO: 4) Compute mean reward plot, i.e. cycles on x axis, percentage of total reward on y axis, plot a line
-    #  with the mean reward over all bakers and then plot the relative difference to this for every baker
+    # Compute mean reward plot, i.e. cycles on x axis, percentage of total reward on y axis, plot a line with the mean
+    # reward over all bakers in red and the relative rewards for all bakers per cycle on the y axis
+    # TODO: eventually or detect the bakers that have a too big distance
+    plot_distance_to_mean(0, 8)
+    plot_distance_to_mean(0, 398)
 
     #  Nakamoto index
     plot_nakamoto_index(0, 398)
