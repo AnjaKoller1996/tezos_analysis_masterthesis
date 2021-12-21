@@ -139,6 +139,9 @@ def plot_fairness_comparison_rewards_rolls(start, end, alpha):
 #    plt.close()
 
 
+
+
+
 if __name__ == '__main__':
     # Setup db
     con = sqlite3.connect(DB_FILE)  # attributes: cycle, baker, fee, reward, deposit, blocks (merged db)
