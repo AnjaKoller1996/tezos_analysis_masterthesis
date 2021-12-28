@@ -21,6 +21,14 @@ def get_avg_reward_per_cycle():
     return avg_reward_per_cycle
 
 
+def get_avg_reward_cycle_income_table(start,end):
+    avg_reward_list = []
+    for c in range(start, end):
+        avg_reward_c = cur.execute('SELECT AVG(total_income) from income_table where cycle=%s' % c).fetchall()[0]
+        avg_reward_list.append(avg_reward_c)
+    return avg_reward_list
+
+
 def calculate_gini_index(wealths):
     """Compute Gini coefficient of array of values"""
     # convert list to numpy array
@@ -410,34 +418,6 @@ def plot_expectational_fairness_all_bakers_all_cycles_lowest_x(expectational_fai
     plt.close()
 
 
-# TODO: debug
-def plot_expectational_fairness_overview(expectational_fairness_list, x):
-    """plot expectational fairness average, highest x and lowest x in one plot"""
-    x_datas = []
-    y_datas = []
-    x_datas_high = []
-    y_datas_high = []
-    for c in range(0, 398):
-        x_data, y_data = compute_expectational_fairness_lowest_x_cycle(expectational_fairness_list, x, c)
-        x_datas.append(x_data)
-        y_datas.append(y_data)
-        #plt.plot(x_data, y_data, '.', color='blue', label='lowest %x' % x)
-        x_data_high, y_data_high = compute_expectational_fairness_highest_x_cycle(expectational_fairness_list, x,c)
-        x_datas_high.append(x_data_high)
-        y_datas_high.append(y_data_high)
-        #plt.plot(x_data_high, y_data_high, '.', color='green', label='highest %x' % x)
-    x_data_avg, y_data_avg = compute_expectational_fairness_avg(expectational_fairness_list)
-    plt.plot(x_data_avg, y_data_avg, '.', color='red', label='average')
-    plt.plot(x_datas, y_datas, '.', color='blue', label='lowest %x' % x)
-    plt.plot(x_datas_high, y_datas_high, '.', color='green', label='highest %x' % x)
-    plt.legend()
-    plt.title('Expectational Fairness overview')
-    plt.xlabel('Cycles')
-    plt.ylabel('Absolute reward/Expected reward')
-    plt.savefig('images/expectational_fairness/exp_fairness_overview_' + str(x) + '_percent' + '.png')
-    plt.close()
-
-
 def get_baker_at_cycle(cycle):
     """return an array of addresses of all bakers at cycle cycle"""
     bakers = []
@@ -485,7 +465,6 @@ def get_stakes_and_fractions(cycle):
     return initial_stakes, fractions
 
 
-
 # TODO: implement this with highest x percentile
 def compute_robust_fairness_highest_x(cycle, x):
     Deltas, EPS = compute_robust_fairness(cycle)
@@ -496,15 +475,18 @@ def compute_robust_fairness_highest_x(cycle, x):
     # TODO: when we sort zip the EPS and delta so we get the corresponding delta, then work with the corresponding sorted delta
     Deltas = Deltas[last_n:]
     EPS = EPS[last_n:]
-    Deltas_highest_x, EPS_highest_x = # take the highest eps values with the corresponding delta (TODO: also do vice versa)
+    Deltas_highest_x, EPS_highest_x = [], []
+    #Deltas_highest_x, EPS_highest_x = # take the highest eps values with the corresponding delta (TODO: also do vice versa)
     return Deltas_highest_x, EPS_highest_x
 
 
+# TODO: debug robust fairness
 def compute_robust_fairness(cycle, Deltas=np.linspace(0, 1, 100)):
     """Robust fairness for one specific cycle and all bakers"""
-    EPS = np.empty([100])
+    # EPS = np.empty([100])
+    EPS = np.linspace(0, 1, 100)
     # Deltas = np.linspace(0, 1, 100)
-    Epsilons = np.linspace(0, 5, 100)
+    Epsilons = np.linspace(0, 550, 100)
 
     initial_stakes, fractions = get_stakes_and_fractions(cycle)
     initial_stakes = np.fromiter(initial_stakes, dtype=float)  # length of num bakers at cycle 0
@@ -518,6 +500,7 @@ def compute_robust_fairness(cycle, Deltas=np.linspace(0, 1, 100)):
             if Pr >= 1 - delta:
                 EPS[idx] = eps
                 break
+    # TODO: check delta and eps values at the beginning -> very high eps values needed
     return Deltas, EPS
 
 
@@ -632,6 +615,19 @@ def compute_mean_rewards(start, end):
     return mean_rewards
 
 
+def compute_median_rewards(start, end):
+    """Computed median reward per cycle from cycle start to end"""
+    rewards = get_rewards_all_bakers(start, end)
+    median_rewards = []
+    for x in range(0, len(rewards)):  # iterate over all bakers, take median in each cycle
+        rewards_c = rewards[x]
+        rewards_c_sorted = np.sort(rewards_c)
+        median_c_index = int(np.ceil(len(rewards_c)/2))
+        median_c = rewards_c_sorted[median_c_index]
+        median_rewards.append(median_c)
+    return median_rewards
+
+
 def get_total_rewards_per_cycle(start, end):
     """returns total rewards for each cycle from start to end"""
     total_rewards = []
@@ -702,6 +698,20 @@ def plot_robust_fairness_aoc(start, end):
     plt.close()
 
 
+def plot_median_and_avg_reward(start, end):
+    x_data = list(range(start, end+1))
+    y1_data = compute_median_rewards(start, end)
+    y2_data = compute_mean_rewards(start, end)
+    plt.plot(x_data, y1_data, label='Median')
+    plt.plot(x_data, y2_data, label='Mean')
+    plt.legend()
+    plt.xlabel('Cycle')
+    plt.ylabel('Rewards')
+    plt.title('Mean and Avg rewards per Cycle from ' + str(start) + ' to ' + str(end))
+    plt.savefig('images/mean_avg_rewards_' + str(start) + '_' + str(end) + '.png')
+    plt.close()
+
+
 if __name__ == '__main__':
     # Setup db
     con = sqlite3.connect(DB_FILE)  # attributes: cycle, baker, fee, reward, deposit, blocks (merged db)
@@ -721,6 +731,11 @@ if __name__ == '__main__':
     # Method/ Plot calls
     plot_reward_standard_deviation_all_cycles()
     plot_histogram_5cycles_baker_rewards()
+
+    # Compute median and avg reward for all cycles in a plot
+    plot_median_and_avg_reward(0, 6)
+    plot_median_and_avg_reward(0, 398)
+
     # Plot gini indexes of baker rewards for each era
 
     start_cycles = [0, 161, 208, 271, 326]
@@ -756,6 +771,13 @@ if __name__ == '__main__':
     exp_fairness_list = compute_expectational_fairness_all_cycles(cycle_total_reward_dict, baker_initial_cycle_dict,
                                                                   baker_initial_reward_dict,
                                                                   cycle_list_of_active_bakers_dict)
+
+# TODO: debug this here below
+    plot_robust_fairness(130)
+    plot_robust_fairness(50)
+    plot_robust_fairness(200)
+
+
     plot_expectational_fairness_all_bakers_all_cycles_highest_x(exp_fairness_list, 5)
     plot_expectational_fairness_all_bakers_all_cycles_lowest_x(exp_fairness_list, 5)
     plot_expectational_fairness_all_bakers_all_cycles(exp_fairness_list)
@@ -763,8 +785,7 @@ if __name__ == '__main__':
         exp_fairness_list)  # average over all bakers in each cycle
 
     # Exp. Fairness overview plot (avg, lowest 5% resp. 1%, highest 5% resp. 1% in one plot)
-    plot_expectational_fairness_overview(exp_fairness_list, 5)
-    plot_expectational_fairness_overview(exp_fairness_list, 1)
+    # TODO: make expectational fairness overview plot (avg, highest 5, lowest5, median)
 
     # TODO: look at highest 5% exp fairness and robust fairness
 
