@@ -345,10 +345,15 @@ def plot_income_rewards_gini_index(start, end):
     plt.close()
 
 
-def plot_expectational_fairness_all_bakers_all_cycles_average(expectational_fairness_list):
+def plot_expectational_fairness_all_bakers_all_cycles_average(cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                              baker_initial_reward_dict,
+                                                              cycle_list_of_active_bakers_dict):
     """we have a list for each cycle where every baker has its exp fairness value -> take average per cycle"""
-    x_data_avg, y_data_avg = compute_expectational_fairness_avg(expectational_fairness_list)
-    plt.plot(x_data_avg, y_data_avg, color='red')
+    x_data = list(range(0, 398))
+    y_data = compute_expectational_fairness_avg(cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                baker_initial_reward_dict,
+                                                cycle_list_of_active_bakers_dict)
+    plt.plot(x_data, y_data, color='red')
     plt.plot()
     plt.xlabel('Cycle')
     plt.ylabel('Absolute reward/Expected reward')
@@ -357,14 +362,16 @@ def plot_expectational_fairness_all_bakers_all_cycles_average(expectational_fair
     plt.close()
 
 
-def plot_expectational_fairness_onecycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
+def plot_expectational_fairness_onecycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                         baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
     """plots expectational fairness for 1 specific cycle (all bakers)"""
-    y_data = exp_fairness_one_cycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+    y_data = exp_fairness_one_cycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict,
+                                    cycle_list_of_active_bakers_dict)
     x_data = [cycle] * len(y_data)
     plt.plot(x_data, y_data, '.')
     plt.xlabel('Cycle')
     plt.ylabel('Absolute reward/Expected reward')
-    plt.title('Expectational Fairness Cycle' +str(cycle))
+    plt.title('Expectational Fairness Cycle' + str(cycle))
     plt.savefig('images/expectational_fairness/exp_fairness_cycle_' + str(cycle) + '.png')
     plt.close()
 
@@ -385,19 +392,24 @@ def plot_expectational_fairness_all_bakers_all_cycles(expectational_fairness_lis
     plt.close()
 
 
-def compute_expectational_fairness_x_quantile(x, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
+def compute_expectational_fairness_x_quantile(x, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                              baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
     """0.05 quantile means 0.05 % smaller, 95% bigger"""
     quantile_list = []
     for c in range(0, 398):
         # list of exp fairness all bakers one cycle -> list
-        exp_fairness_c = exp_fairness_one_cycle(c, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)  # this should be an array
+        exp_fairness_c = exp_fairness_one_cycle(c, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                baker_initial_reward_dict,
+                                                cycle_list_of_active_bakers_dict)  # this should be an array
         exp_fairness_c_quantile_x = np.quantile(exp_fairness_c, x)
         quantile_list.append(exp_fairness_c_quantile_x)
     return quantile_list
 
 
-def plot_expectational_fairness_x_quantile(x, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
-    y_data = compute_expectational_fairness_x_quantile(x, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict )
+def plot_expectational_fairness_x_quantile(x, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                           baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
+    y_data = compute_expectational_fairness_x_quantile(x, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                       baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
     x_data = list(range(0, 398))
     plt.plot(x_data, y_data)
     plt.title('Expectational Fairness ' + str(x) + ' quantile')
@@ -407,15 +419,22 @@ def plot_expectational_fairness_x_quantile(x, cycle_total_reward_dict, baker_ini
     plt.close()
 
 
-def plot_exp_fairness_overview(expectational_fairness_list, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
+def plot_exp_fairness_overview(cycle_total_reward_dict, baker_initial_cycle_dict,
+                               baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
     """avg, 5% quantile, 95% quantile and median in one plot"""
-    x_data, y1_data = compute_expectational_fairness_avg(expectational_fairness_list)
+    x_data = list(range(0, 398))
+    y1_data = compute_expectational_fairness_avg(cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                         baker_initial_reward_dict,
+                                                         cycle_list_of_active_bakers_dict)
     plt.plot(x_data, y1_data, label='Avg')
-    y2_data = compute_expectational_fairness_x_quantile(0.05, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+    y2_data = compute_expectational_fairness_x_quantile(0.05, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                        baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
     plt.plot(x_data, y2_data, label='5% quantile')
-    y3_data = compute_expectational_fairness_x_quantile(0.95, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+    y3_data = compute_expectational_fairness_x_quantile(0.95, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                        baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
     plt.plot(x_data, y3_data, label='95% quantile')
-    y4_data = compute_expectational_fairness_x_quantile(0.5, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+    y4_data = compute_expectational_fairness_x_quantile(0.5, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                        baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
     plt.plot(x_data, y4_data, label='Median')
     plt.title('Expectational Fairness Overview')
     plt.legend()
@@ -425,18 +444,18 @@ def plot_exp_fairness_overview(expectational_fairness_list, cycle_total_reward_d
     plt.close()
 
 
-# TODO: here take cyclewise avg! 
-def compute_expectational_fairness_avg(expectational_fairness_list):
+def compute_expectational_fairness_avg(cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict,
+                                       cycle_list_of_active_bakers_dict):
     """Computes avg exp fairness in each cycle"""
-    x_data = list(range(0, 398))
-    y_data = []
-    for c in x_data:  # for every cycle take the average
-        exp_c = expectational_fairness_list[c]
-        exp_c_mean = np.mean(exp_c)  # one value per cycle (mean over all bakers
-        y_data.append(exp_c_mean)
-    x_data = np.asarray(x_data)
-    y_data = np.asarray(y_data)
-    return x_data, y_data
+    exp_fairness_avg_list = []
+    for c in range(0, 398):
+        # list of exp fairness all bakers one cycle -> list
+        exp_fairness_c = exp_fairness_one_cycle(c, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                baker_initial_reward_dict,
+                                                cycle_list_of_active_bakers_dict)  # this should be an array
+        exp_fairness_c_avg = np.mean(exp_fairness_c)
+        exp_fairness_avg_list.append(exp_fairness_c_avg)
+    return exp_fairness_avg_list
 
 
 def get_baker_at_cycle(cycle):
@@ -768,24 +787,29 @@ if __name__ == '__main__':
                                                                   cycle_list_of_active_bakers_dict)
 
     # TODO: debug this here below
-    #plot_robust_fairness(130)
-    #plot_robust_fairness(50)
-    #plot_robust_fairness(200)
+    # plot_robust_fairness(130)
+    # plot_robust_fairness(50)
+    # plot_robust_fairness(200)
 
     # Exp. Fairness overview plot (avg, lowest 5% resp. 1%, highest 5% resp. 1% in one plot)
-    plot_exp_fairness_overview(exp_fairness_list, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict,
+    plot_exp_fairness_overview(cycle_total_reward_dict, baker_initial_cycle_dict,
+                               baker_initial_reward_dict,
                                cycle_list_of_active_bakers_dict)
-    plot_expectational_fairness_x_quantile(0.05, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
-    plot_expectational_fairness_x_quantile(0.95, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+    plot_expectational_fairness_x_quantile(0.05, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                           baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+    plot_expectational_fairness_x_quantile(0.95, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                           baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
     plot_expectational_fairness_all_bakers_all_cycles(exp_fairness_list)
-    plot_expectational_fairness_all_bakers_all_cycles_average(
-        exp_fairness_list)  # average over all bakers in each cycle
+    plot_expectational_fairness_all_bakers_all_cycles_average(cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                              baker_initial_reward_dict,
+                                                              cycle_list_of_active_bakers_dict)  # average over all bakers in each cycle
 
     # expectational fairness at individual cycles for all bakers, look at cycles in each era
     # TODO: note if there are differences among the eras, compare several cycles in different eras
     era_cycles = [130, 200, 250, 300, 340, 370, 395]
     for cycle in era_cycles:
-        plot_expectational_fairness_onecycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+        plot_expectational_fairness_onecycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                             baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
 
     # Robust fairness (we fix delta and a specific cycle and find epsilon)
     plot_robust_fairness(1)  # we look at cycle 1 as there we have the same bakers as in cycle 0
