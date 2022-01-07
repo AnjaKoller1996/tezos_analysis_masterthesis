@@ -362,6 +362,58 @@ def plot_expectational_fairness_all_bakers_all_cycles_average(cycle_total_reward
     plt.close()
 
 
+def get_exp_fairness_highest_x_percent_bakers(x, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
+    """returns exp fairness list of the x bakers with the highest values, and then make a histogram"""
+    exp_fair_highest_x_list = []
+    bakers_highest_x_list = []
+    for cycle in range(0, 398):
+        exp_fairness_list_c = exp_fairness_one_cycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+        bakers = get_baker_at_cycle(cycle)
+        # compute how many are the highest x %
+        num_entries_per_cycle = len(bakers)
+        num_x = int(np.ceil(x/100 * num_entries_per_cycle))
+        exp_fairness_dict_c = dict(zip(bakers, exp_fairness_list_c))
+        sorted_exp_fairness_dict_c = dict(sorted(exp_fairness_dict_c.items(), key=lambda item: item[1])) # sorted from lowest to highest
+        exp_fairness_list_highest_x = list(sorted_exp_fairness_dict_c.items())[-num_x:] # dict with highest x entries (exp fairness and address)
+        exp_fair_highest_x_list.append(list(dict(exp_fairness_list_highest_x).values()))
+        bakers_highest_x_list.append(list(dict(exp_fairness_list_highest_x).keys()))
+    return exp_fair_highest_x_list, bakers_highest_x_list  # 2 array of arrays (one array for each cycle)
+
+
+def plot_num_occurrences_highest_x_bakers(x, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
+    """Histogram with occurrences of the highest 5 % of the bakers in each cycle -> how much does which address occur
+    (per cycle), once, twice, 5 times,... """
+    """on x axis number of occurrences, on y axis how many baker have these num occurrences"""
+    exp_fairness_highest_x_list, bakers_highest_x_list = get_exp_fairness_highest_x_percent_bakers(x, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+    num_occurrences = []
+    bakers = []
+    num_bakers_with_occ = []
+    bakers_list_flatten = [item for sublist in bakers_highest_x_list for item in sublist]
+    for baker in bakers_list_flatten:
+        # check if this bakers occurrence is not already tracked, if yes ignore and go to next baker
+        if not baker in bakers:
+            occ_baker = bakers_list_flatten.count(baker)
+            num_occurrences.append(occ_baker) # num_occurrences: how many times each baker in bakers occurs
+            bakers.append(baker)  # save the corresponding baker
+
+    occ_contained = []
+    for occ in num_occurrences:
+        if not occ in occ_contained:  # remove duplicates
+            num_bakers_with_occ.append(num_occurrences.count(occ)) # counts how many times a certain occurrencenumber of a baker occurs
+            occ_contained.append(occ)
+    # np.max(num_occurrences) -> 339 --> num_occurrences.index(339)=24 --> bakers[24]='tz1P7wwnURM4iccy9sSS6Bo2tay9JpuPHzf5'
+    # TODO: observe the above baker and some others as well
+    x_data = occ_contained
+    y_data = num_bakers_with_occ
+    index = np.arange(len(x_data))
+    bar_width = 0.9
+    plt.bar(index, y_data, bar_width, color="green")
+    plt.title('Number of occurrences of highest' + str(x) + '% bakers exp. Fairness')
+    plt.xlabel('Number of occurrences in highest' + str(x) + '% exp. Fairness')
+    plt.ylabel('Number of bakers')
+    plt.savefig('images/expectational_fairness/highest_' + str(5) + '_occurrences.png')
+
+
 def plot_expectational_fairness_onecycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict,
                                          baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
     """plots expectational fairness for 1 specific cycle (all bakers)"""
@@ -543,7 +595,7 @@ def compute_robust_fairness_old(cycle, Deltas=np.linspace(0, 1, 100)):
     initial_bakers, initial_rewards, initial_totals = get_bakers_initial_rewards_at_cycle(cycle)
     EPS = np.empty([100])
     # Deltas = np.linspace(0, 1, 100)
-    Epsilons = np.linspace(0, 10000, 100)
+    Epsilons = np.linspace(0, 50000, 100)
 
     initial_stakes = []  # check if this array has correct length
     n = len(initial_rewards)
@@ -589,7 +641,7 @@ def compute_robust_fairness(cycle, Deltas=np.linspace(0, 1, 100)):
     """Robust fairness for one specific cycle and all bakers"""
     # Note: for some cycles like 130 the EPS value would need to be immensly high to satisfy this
     EPS = np.linspace(0, 1, 100)
-    Epsilons = np.linspace(0, 10000, 100)
+    Epsilons = np.linspace(0, 50000, 100)
 
     initial_stakes, fractions = get_stakes_and_fractions(cycle)
     initial_stakes = np.fromiter(initial_stakes, dtype=float)  # length of num bakers at cycle 0
@@ -873,6 +925,14 @@ if __name__ == '__main__':
                                                                   baker_initial_reward_dict,
                                                                   cycle_list_of_active_bakers_dict)
 
+    exp_fairness_highest5, highest5_bakers = get_exp_fairness_highest_x_percent_bakers(5, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                                  baker_initial_reward_dict,
+                                                                  cycle_list_of_active_bakers_dict)
+
+    plot_num_occurrences_highest_x_bakers(5, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                                  baker_initial_reward_dict,
+                                                                  cycle_list_of_active_bakers_dict)
+
     # Exp. Fairness overview plot (avg, lowest 5% resp. 1%, highest 5% resp. 1% in one plot)
     plot_exp_fairness_overview(cycle_total_reward_dict, baker_initial_cycle_dict,
                                baker_initial_reward_dict,
@@ -895,8 +955,8 @@ if __name__ == '__main__':
 
     # Robust fairness (we fix delta and a specific cycle and find epsilon) Note: for robust fairness cycles higher
     # than 6 we have very high EPS values and therefore plots look wrong at first sight
-    plot_robust_fairness_old(6)
-    plot_robust_fairness_old(50)
+    #plot_robust_fairness_old(6)
+    #plot_robust_fairness_old(50)
     plot_robust_fairness(50)
     plot_robust_fairness(6)
     # plot a robust fairness for every era (one cycle in each era)
