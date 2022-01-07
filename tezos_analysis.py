@@ -401,6 +401,7 @@ def plot_num_occurrences_highest_x_bakers(x, cycle_total_reward_dict, baker_init
         if not occ in occ_contained:  # remove duplicates
             num_bakers_with_occ.append(num_occurrences.count(occ)) # counts how many times a certain occurrencenumber of a baker occurs
             occ_contained.append(occ)
+            # TODO: also get the corresponding bakers in order to see which bakers are the ones with the high occurrences
     # np.max(num_occurrences) -> 339 --> num_occurrences.index(339)=24 --> bakers[24]='tz1P7wwnURM4iccy9sSS6Bo2tay9JpuPHzf5'
     # TODO: observe the above baker and some others as well
     x_data = occ_contained
@@ -412,6 +413,27 @@ def plot_num_occurrences_highest_x_bakers(x, cycle_total_reward_dict, baker_init
     plt.xlabel('Number of occurrences in highest' + str(x) + '% exp. Fairness')
     plt.ylabel('Number of bakers')
     plt.savefig('images/expectational_fairness/highest_' + str(5) + '_occurrences.png')
+
+
+def plot_expectational_fairness_highest_x(x,cycle_total_reward_dict,baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
+    """plot the exp fairness of the highest 5 percent of the bakers"""
+    exp_fairness_highest_x_list, bakers_highest_x_list = get_exp_fairness_highest_x_percent_bakers(x,
+                                                                                                   cycle_total_reward_dict,
+                                                                                                   baker_initial_cycle_dict,
+                                                                                                   baker_initial_reward_dict,
+                                                                                                   cycle_list_of_active_bakers_dict)
+
+    y_datas = exp_fairness_highest_x_list
+    x_datas = list(range(0, 398))
+    for c in x_datas:  # for every cycle
+        x_data = c
+        for y_data in y_datas[c]:  # plot all exp fairness values in that cycle of all bakers
+            plt.plot(x_data, y_data, '.')
+    plt.xlabel('Cycle')
+    plt.ylabel('Absolute reward/Expected reward')
+    plt.title('Expectational Fairness for all cycles highest ' + str(x) + ' percent bakers')
+    plt.savefig('images/expectational_fairness/exp_fairness_highest_' + str(x) + 'bakers.png')
+    plt.close()
 
 
 def plot_expectational_fairness_onecycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict,
@@ -932,6 +954,9 @@ if __name__ == '__main__':
     plot_num_occurrences_highest_x_bakers(5, cycle_total_reward_dict, baker_initial_cycle_dict,
                                                                   baker_initial_reward_dict,
                                                                   cycle_list_of_active_bakers_dict)
+
+    plot_expectational_fairness_highest_x(5, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                              baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
 
     # Exp. Fairness overview plot (avg, lowest 5% resp. 1%, highest 5% resp. 1% in one plot)
     plot_exp_fairness_overview(cycle_total_reward_dict, baker_initial_cycle_dict,
