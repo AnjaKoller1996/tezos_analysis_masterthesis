@@ -505,10 +505,9 @@ def plot_expectational_fairness_all_bakers_all_cycles(expectational_fairness_lis
         x_data = c
         for y_data in y_datas[c]:  # plot all exp fairness values in that cycle of all bakers
             plt.plot(x_data, y_data, '.')
-    # TODO: for better visibility maybe filter out all that are 0 at first sight
     plt.xlabel('Cycle')
     plt.ylabel('Absolute reward/Expected reward')
-    plt.title('Expectational Fairness for all cycles and all bakers (New Version)')
+    plt.title('Expectational Fairness for all cycles and all bakers')
     plt.savefig('images/expectational_fairness/exp_fairness_allbakers_allcycles.png')
     plt.close()
 
@@ -766,7 +765,7 @@ def get_baker_rewards_per_cycle_sorted(cycle):
     return baker_rewards_sorted
 
 
-def compute_nakamoto_index(start, end):
+def compute_nakamoto_index(start, end, isThird):
     num_cycles = end - start
     num_bakers = [0] * num_cycles  # array with number of bakers per cycle needed for > 50%
     total_rewards_per_cycle = get_total_rewards_per_cycle(start, end)
@@ -778,7 +777,10 @@ def compute_nakamoto_index(start, end):
         num_bakers_c = 0
         i = 0
         while i <= len(baker_rewards_sorted_c):  # while not all bakers in the cycle watched
-            if baker_rewards_c_summed > (total_rewards_per_cycle[c] / 2):  # reach >50%
+            if not isThird and baker_rewards_c_summed > (total_rewards_per_cycle[c] / 2):  # reach >50%, nakamoto with 1/2
+                num_bakers[c] = num_bakers_c
+                break  # stop while loop when this condition is met
+            elif isThird and baker_rewards_c_summed > (total_rewards_per_cycle[c] / 3): # nakamoto with 1/3
                 num_bakers[c] = num_bakers_c
                 break  # stop while loop when this condition is met
             else:  # if not > 50% then add one (current baker), and add the reward of the current baker
@@ -806,7 +808,7 @@ def plot_nakamoto_index(start, end):
     have more than 50% of the stake, this can fluctuate, but if it has a general tendency to go down, then it gets
     unfair as we have a few very big players """
     x_data = list((range(start, end)))
-    y_data = compute_nakamoto_index(start, end)
+    y_data = compute_nakamoto_index(start, end, False)
     plt.plot(x_data, y_data)
     plt.xlabel('Cycle')
     plt.ylabel('Percentage of bakers to reach > 50%')
@@ -815,10 +817,24 @@ def plot_nakamoto_index(start, end):
     plt.close()
 
 
+def plot_nakamoto_index_onethird(start, end):
+    """plots the nakamoto index for each cycle, i.e. the relative number of bakers (percentage) we need in order to
+    have more than 50% of the stake, this can fluctuate, but if it has a general tendency to go down, then it gets
+    unfair as we have a few very big players """
+    x_data = list((range(start, end)))
+    y_data = compute_nakamoto_index(start, end, True)
+    plt.plot(x_data, y_data)
+    plt.xlabel('Cycle')
+    plt.ylabel('Percentage of bakers to reach > 1/3')
+    plt.title('Nakamoto Index for each cycle from ' + str(start) + ' to ' + str(end))
+    plt.savefig('images/Nakamoto_index_onethird' + str(start) + '_' + str(end) + '.png')
+    plt.close()
+
+
 def plot_nakamoto_index_num_bakers(start, end):
     """Plots nakamoto index on y axis and num_bakers (in each cycle) on x axis"""
     x_data = get_num_bakers_income_table_per_cycle_list(start, end)  # get number of bakers in each cycle
-    y_data = compute_nakamoto_index(start, end)
+    y_data = compute_nakamoto_index(start, end, False)
     plt.plot(x_data, y_data, '.')
     plt.xlabel('Number of Bakers (Cycle)')
     plt.ylabel('Percentage of bakers to reach > 50%')
@@ -986,8 +1002,6 @@ if __name__ == '__main__':
     plot_income_rewards_gini_index(0, 390)
 
     # Expectational Fairness
-    # TODO: make an exp. fairness plot for 1 specific baker and a difference plot
-
     cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict = get_bakers_initial_values_fairness()
 
     exp_fairness_list = compute_expectational_fairness_all_cycles(cycle_total_reward_dict, baker_initial_cycle_dict,
@@ -1056,9 +1070,11 @@ if __name__ == '__main__':
     plot_distance_to_mean(0, 8)
     plot_distance_to_mean(0, 398)
 
-    #  Nakamoto index
+    #  Nakamoto index with > 1/2 approach
     plot_nakamoto_index(0, 398)
-    plot_nakamoto_index(0, 8)
+
+    # Nakamoto index with > 1/3 approach
+    plot_nakamoto_index_onethird(0, 398)
 
     # Nakamoto index with num bakers in network on x axis
     plot_nakamoto_index_num_bakers(0, 8)
