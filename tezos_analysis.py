@@ -345,6 +345,30 @@ def plot_income_rewards_gini_index(start, end):
     plt.close()
 
 
+def plot_expectational_fairness_average_without_highest5(cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                              baker_initial_reward_dict,
+                                                              cycle_list_of_active_bakers_dict):
+    """exp fairness avg in each cycle without the highest 5% of exp fairness (i.e. without outliers)"""
+    exp_fairness_list_lowest95, bakers_lowest95list = get_exp_fairness_lowest_x_percent_bakers(95, cycle_total_reward_dict, baker_initial_cycle_dict,
+                                             baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+
+    # get mean in each cycle
+    exp_fairness_avg_list = []
+    for c in range(0, 398):
+        exp_fairness_c = exp_fairness_list_lowest95[c]
+        exp_fairness_c_avg = np.mean(exp_fairness_c)
+        exp_fairness_avg_list.append(exp_fairness_c_avg)
+    x_data = list(range(0, len(exp_fairness_list_lowest95)))
+    y_data = exp_fairness_avg_list
+    plt.plot(x_data, y_data, color='red')
+    plt.plot()
+    plt.xlabel('Cycle')
+    plt.ylabel('Absolute reward/Expected reward')
+    plt.title('Expectational Fairness without highest 5 percent')
+    plt.savefig('images/expectational_fairness/exp_fairness_avg_without_highest5.png')
+    plt.close()
+
+
 def plot_expectational_fairness_all_bakers_all_cycles_average(cycle_total_reward_dict, baker_initial_cycle_dict,
                                                               baker_initial_reward_dict,
                                                               cycle_list_of_active_bakers_dict):
@@ -380,6 +404,24 @@ def get_exp_fairness_highest_x_percent_bakers(x, cycle_total_reward_dict, baker_
     return exp_fair_highest_x_list, bakers_highest_x_list  # 2 array of arrays (one array for each cycle)
 
 
+def get_exp_fairness_lowest_x_percent_bakers(x, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
+    """returns exp fairness list of the x bakers with the lowest values"""
+    exp_fair_lowest_x_list = []
+    bakers_lowest_x_list = []
+    for cycle in range(0, 398):
+        exp_fairness_list_c = exp_fairness_one_cycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+        bakers = get_baker_at_cycle(cycle)
+        # compute how many are the highest x %
+        num_entries_per_cycle = len(bakers)
+        num_x = int(np.ceil(x/100 * num_entries_per_cycle))
+        exp_fairness_dict_c = dict(zip(bakers, exp_fairness_list_c))
+        sorted_exp_fairness_dict_c = dict(sorted(exp_fairness_dict_c.items(), key=lambda item: item[1])) # sorted from lowest to highest
+        exp_fairness_list_lowest_x = list(sorted_exp_fairness_dict_c.items())[:num_x] # dict with highest x entries (exp fairness and address)
+        exp_fair_lowest_x_list.append(list(dict(exp_fairness_list_lowest_x).values()))
+        bakers_lowest_x_list.append(list(dict(exp_fairness_list_lowest_x).keys()))
+    return exp_fair_lowest_x_list, bakers_lowest_x_list  # 2 array of arrays (one array for each cycle)
+
+
 def plot_num_occurrences_highest_x_bakers(x, cycle_total_reward_dict, baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
     """Histogram with occurrences of the highest 5 % of the bakers in each cycle -> how much does which address occur
     (per cycle), once, twice, 5 times,... """
@@ -403,7 +445,12 @@ def plot_num_occurrences_highest_x_bakers(x, cycle_total_reward_dict, baker_init
             occ_contained.append(occ)
             # TODO: also get the corresponding bakers in order to see which bakers are the ones with the high occurrences
     # np.max(num_occurrences) -> 339 --> num_occurrences.index(339)=24 --> bakers[24]='tz1P7wwnURM4iccy9sSS6Bo2tay9JpuPHzf5'
+    # num_occurrences.most_common(10)-> get the 10 most common bakers in the list, or get the 10 highest entry in the num_occurrences array and extract the corresponding bakers
     # TODO: observe the above baker and some others as well
+    # TODO: make 4 categories take the occurrences in between togehter
+
+
+    # TODO: x_data old and y_data_old -> se new ones above
     x_data = occ_contained
     y_data = num_bakers_with_occ
     index = np.arange(len(x_data))
@@ -497,10 +544,10 @@ def plot_exp_fairness_overview(cycle_total_reward_dict, baker_initial_cycle_dict
                                baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
     """avg, 5% quantile, 95% quantile and median in one plot"""
     x_data = list(range(0, 398))
-    y1_data = compute_expectational_fairness_avg(cycle_total_reward_dict, baker_initial_cycle_dict,
-                                                 baker_initial_reward_dict,
-                                                 cycle_list_of_active_bakers_dict)
-    plt.plot(x_data, y1_data, label='Avg')
+    #y1_data = compute_expectational_fairness_avg(cycle_total_reward_dict, baker_initial_cycle_dict,
+    #                                             baker_initial_reward_dict,
+    #                                             cycle_list_of_active_bakers_dict)
+    #plt.plot(x_data, y1_data, label='Avg')
     y2_data = compute_expectational_fairness_x_quantile(0.05, cycle_total_reward_dict, baker_initial_cycle_dict,
                                                         baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
     plt.plot(x_data, y2_data, label='5% quantile')
@@ -514,7 +561,7 @@ def plot_exp_fairness_overview(cycle_total_reward_dict, baker_initial_cycle_dict
     plt.legend()
     plt.xlabel('Cycles')
     plt.ylabel('Absolute reward/Expected reward')
-    plt.savefig('images/expectational_fairness/exp_fairness_overview.png')
+    plt.savefig('images/expectational_fairness/exp_fairness_overview_without_avg.png')
     plt.close()
 
 
@@ -951,12 +998,22 @@ if __name__ == '__main__':
                                                                   baker_initial_reward_dict,
                                                                   cycle_list_of_active_bakers_dict)
 
+
+    #print('HIGHEST 5 BAKERS')
+    highest5_bakers_flattened = [item for sublist in highest5_bakers for item in sublist]
+    highest5_flatten_no_duplicates = list(dict.fromkeys(highest5_bakers_flattened))
+    print(highest5_flatten_no_duplicates)
+
     plot_num_occurrences_highest_x_bakers(5, cycle_total_reward_dict, baker_initial_cycle_dict,
                                                                   baker_initial_reward_dict,
                                                                   cycle_list_of_active_bakers_dict)
 
     plot_expectational_fairness_highest_x(5, cycle_total_reward_dict, baker_initial_cycle_dict,
                                               baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
+
+    plot_expectational_fairness_average_without_highest5(cycle_total_reward_dict, baker_initial_cycle_dict,
+                                                         baker_initial_reward_dict,
+                                                         cycle_list_of_active_bakers_dict)
 
     # Exp. Fairness overview plot (avg, lowest 5% resp. 1%, highest 5% resp. 1% in one plot)
     plot_exp_fairness_overview(cycle_total_reward_dict, baker_initial_cycle_dict,
