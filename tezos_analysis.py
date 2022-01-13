@@ -506,6 +506,11 @@ def plot_expectational_fairness_all_bakers_all_cycles(expectational_fairness_lis
         for y_data in y_datas[c]:  # plot all exp fairness values in that cycle of all bakers
             plt.plot(x_data, y_data, '.')
     plt.xlabel('Cycle')
+    plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
+    plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
+    plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
+    plt.xlabel('Cycle')
+    plt.legend()
     plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness for all cycles and all bakers')
     plt.savefig('images/expectational_fairness/exp_fairness_allbakers_allcycles.png')
