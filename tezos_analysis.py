@@ -64,22 +64,13 @@ def get_num_bakers_income_table_per_cycle_list(start, end):
     return num_bakers_list
 
 
-def compute_num_working_bakers_per_cycle_list():
-    num_bakers_list = []
-    num_working_bakers = cur.execute('SELECT working_bakers FROM cycles GROUP BY cycle').fetchall()
-    for working_baker in num_working_bakers:
-        num_bakers_list.append(working_baker[0])
-    print(num_bakers_list)
-    return num_bakers_list
-
-
-def compute_num_active_bakers_per_cycle_list():
-    num_bakers_list = []
-    num_active_bakers = cur.execute('SELECT active_bakers FROM cycles GROUP BY cycle').fetchall()
-    for active_baker in num_active_bakers:
-        num_bakers_list.append(active_baker[0])
-    print(num_bakers_list)
-    return num_bakers_list
+def get_num_rolls_income_table_per_cycle_list(start, end):
+    num_rolls_list = []
+    for c in range(start, end):
+        num_rolls_c = \
+            cur.execute('SELECT SUM(rolls) FROM income_table where cycle=%s' % c).fetchall()[0][0]
+        num_rolls_list.append(num_rolls_c)
+    return num_rolls_list
 
 
 def compute_gini_income_table_rolls(start, end):
@@ -248,6 +239,24 @@ def plot_reward_standard_deviation_all_cycles():
     plt.close()
 
 
+def plot_histogram_cyclerewards():
+    avg_reward = cur.execute('SELECT AVG(total_income) from income_table').fetchone()[0]
+    below_quarter = cur.execute('SELECT COUNT(DISTINCT(address)) from income_table where total_income <=%s' % (avg_reward/4)).fetchone()[0]
+    above_average = cur.execute('SELECT COUNT(DISTINCT(address)) from income_table where total_income >=%s' % avg_reward).fetchone()[0]
+    upper_quarter = cur.execute('SELECT COUNT(DISTINCT(address)) from income_table where total_income >=%s' % (3*avg_reward/4)).fetchone()[0]
+    x_data = ['<1/4 Average', '> Average', '> 3/4 Average']
+    y_data = (below_quarter, above_average, upper_quarter)
+    index = np.arange(len(x_data))
+    bar_width = 0.9
+    plt.bar(index, y_data, bar_width, color="green")
+    plt.xticks(index, x_data)  # labels get centered
+    plt.title('Distribution of reward amounts among bakers')
+    plt.xlabel('Rewards relative to average')
+    plt.ylabel('Number of Bakers')
+    plt.savefig('images/Histogram_baker_rewards.png')
+    plt.close()
+
+
 def plot_histogram_5cycles_baker_rewards():
     num_bakers_above_baseline = cur.execute('SELECT COUNT(DISTINCT baker) from cyclerewards where reward > '
                                             '161938.98').fetchone()[0]
@@ -297,28 +306,6 @@ def plot_era_baker_reward(start, end, era_name):
     plt.savefig('rewards_baker/Reward_all_bakers_per_cycle_' + era_name + '.png')
     plt.close()
     return
-
-
-def plot_num_working_bakers_per_cycle():
-    y_data = compute_num_working_bakers_per_cycle_list()
-    x_data = list(range(0, len(y_data)))
-    plt.plot(x_data, y_data)
-    plt.title('Total number of working bakers per cycle')
-    plt.xlabel('Cycles')
-    plt.ylabel('Number of bakers')
-    plt.savefig('images/Total_num_working_bakers_per_cycle.png')
-    plt.close()
-
-
-def plot_num_active_bakers_per_cycle():
-    y_data = compute_num_active_bakers_per_cycle_list()
-    x_data = list(range(0, len(y_data)))
-    plt.plot(x_data, y_data)
-    plt.title('Total number of active bakers per cycle')
-    plt.xlabel('Cycles')
-    plt.ylabel('Number of bakers')
-    plt.savefig('images/Total_num_active_bakers_per_cycle.png')
-    plt.close()
 
 
 def plot_income_rolls_gini_index(start, end):
@@ -956,6 +943,37 @@ def plot_median_and_avg_reward(start, end):
     plt.close()
 
 
+def plot_num_bakers_per_cycle(start,end):
+    x_data = list(range(start, end))
+    y_data = get_num_bakers_income_table_per_cycle_list(start, end )
+    plt.plot(x_data, y_data)
+    plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
+    plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
+    plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
+    plt.xlabel('Cycles')
+    plt.legend()
+    plt.ylabel('Total number of bakers')
+    plt.title('Total number of bakers in each cycle')
+    plt.savefig('images/total_num_bakers_per_cycle.png')
+    plt.close()
+
+
+def plot_num_rolls_per_cycle(start, end):
+    """plot number of rolls per cycle"""
+    x_data = list(range(start, end))
+    y_data = get_num_rolls_income_table_per_cycle_list(start, end)# get number of bakers in each cycle from income table
+    plt.plot(x_data, y_data)
+    plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
+    plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
+    plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
+    plt.xlabel('Cycles')
+    plt.ylabel('Total number of rolls')
+    plt.legend()
+    plt.title('Total number of rolls in each cycle')
+    plt.savefig('images/total_num_rolls_per_cycle.png')
+    plt.close()
+
+
 if __name__ == '__main__':
     # Setup db
     con = sqlite3.connect(DB_FILE)  # attributes: cycle, baker, fee, reward, deposit, blocks (merged db)
@@ -974,6 +992,7 @@ if __name__ == '__main__':
 
     # Method/ Plot calls
     plot_reward_standard_deviation_all_cycles()
+    plot_histogram_cyclerewards()
     plot_histogram_5cycles_baker_rewards()
 
     # Compute median and avg reward for all cycles in a plot
@@ -992,9 +1011,11 @@ if __name__ == '__main__':
     # for start, end, cycle_name in zip(start_cycles, end_cycles, cycle_names):
     #     plot_era_baker_reward(start, end, cycle_name)
 
-    # get number of active and working bakers per cycle
-    plot_num_working_bakers_per_cycle()  # TODO: take this bakers from the income_Table
-    plot_num_active_bakers_per_cycle()
+    # get number of bakers and stakes per cycle
+    # TODO: test
+    plot_num_bakers_per_cycle(0,398)
+    plot_num_rolls_per_cycle(0,398)
+
 
     # Gini index individual eras
     start_cycles = [0, 161, 208, 271, 326]
