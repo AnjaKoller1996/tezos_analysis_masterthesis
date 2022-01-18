@@ -430,23 +430,23 @@ def plot_num_occurrences_highest_x_bakers(x, cycle_total_reward_dict, baker_init
         if not occ in occ_contained:  # remove duplicates
             num_bakers_with_occ.append(num_occurrences.count(occ)) # counts how many times a certain occurrencenumber of a baker occurs
             occ_contained.append(occ)
-            # TODO: also get the corresponding bakers in order to see which bakers are the ones with the high occurrences
     # np.max(num_occurrences) -> 339 --> num_occurrences.index(339)=24 --> bakers[24]='tz1P7wwnURM4iccy9sSS6Bo2tay9JpuPHzf5'
     # num_occurrences.most_common(10)-> get the 10 most common bakers in the list, or get the 10 highest entry in the num_occurrences array and extract the corresponding bakers
-    # TODO: observe the above baker and some others as well
-    # TODO: make 4 categories take the occurrences in between togehter
-
-
-    # TODO: x_data old and y_data_old -> se new ones above
-    x_data = occ_contained
-    y_data = num_bakers_with_occ
-    index = np.arange(len(x_data))
+    idx_smaller_5 = [i for i, v in enumerate(occ_contained) if v < 5 ]
+    idx_5_to_15 = [i for i, v in enumerate(occ_contained) if v > 5 and v < 16 ]
+    idx_bigger_15 = [i for i, v in enumerate(occ_contained) if v > 15]
+    nbo_array = np.asarray(num_bakers_with_occ)
+    y_data_smaller5 = sum(nbo_array[idx_smaller_5])  # sum of all number of bakers smaller than 5 occurrences
+    y_data_5_to_15 = sum(nbo_array[idx_5_to_15])
+    y_data_bigger_15 = sum(nbo_array[idx_bigger_15])
+    x_data = ['<5', '5-15', '>15']  # filter occ_contained among above 3 categories
+    y_data = [y_data_smaller5, y_data_5_to_15, y_data_bigger_15]
     bar_width = 0.9
-    plt.bar(index, y_data, bar_width, color="green")
-    plt.title('Number of occurrences of highest' + str(x) + '% bakers exp. Fairness')
-    plt.xlabel('Number of occurrences in highest' + str(x) + '% exp. Fairness')
+    plt.bar(x_data, y_data, bar_width, color="green")
+    plt.title('Number of occurrences of highest ' + str(x) + '% bakers exp. Fairness')
+    plt.xlabel('Number of occurrences in highest ' + str(x) + '% exp. Fairness')
     plt.ylabel('Number of bakers')
-    plt.savefig('images/expectational_fairness/highest_' + str(5) + '_occurrences.png')
+    plt.savefig('images/expectational_fairness/highest_' + str(5) + '_occurrences_new.png')
 
 
 def plot_expectational_fairness_highest_x(x,cycle_total_reward_dict,baker_initial_cycle_dict, baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
@@ -1012,10 +1012,8 @@ if __name__ == '__main__':
     #     plot_era_baker_reward(start, end, cycle_name)
 
     # get number of bakers and stakes per cycle
-    # TODO: test
-    plot_num_bakers_per_cycle(0,398)
-    plot_num_rolls_per_cycle(0,398)
-
+    plot_num_bakers_per_cycle(0, 398)
+    plot_num_rolls_per_cycle(0, 398)
 
     # Gini index individual eras
     start_cycles = [0, 161, 208, 271, 326]
