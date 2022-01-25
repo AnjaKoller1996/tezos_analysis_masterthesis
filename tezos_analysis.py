@@ -1,7 +1,5 @@
 import sqlite3
 import numpy as np
-from scipy.integrate import simps
-from numpy import trapz
 import matplotlib.pyplot as plt
 
 DB_FILE = '/home/anjakoller/tezos_dataextraction_merged_alltables.db'
@@ -350,6 +348,10 @@ def plot_expectational_fairness_average_without_highest5(cycle_total_reward_dict
     plt.plot(x_data, y_data, color='red')
     plt.plot()
     plt.xlabel('Cycle')
+    plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
+    plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
+    plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
+    plt.legend()
     plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness without highest 5 percent')
     plt.savefig('images/expectational_fairness/exp_fairness_avg_without_highest5.png')
@@ -496,7 +498,6 @@ def plot_expectational_fairness_all_bakers_all_cycles(expectational_fairness_lis
     plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
     plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
     plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
-    plt.xlabel('Cycle')
     plt.legend()
     plt.ylabel('Absolute reward/Expected reward')
     plt.title('Expectational Fairness for all cycles and all bakers')
@@ -526,6 +527,10 @@ def plot_expectational_fairness_x_quantile(x, cycle_total_reward_dict, baker_ini
     plt.plot(x_data, y_data)
     plt.title('Expectational Fairness ' + str(x) + ' quantile')
     plt.xlabel('Cycles')
+    plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
+    plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
+    plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
+    plt.legend()
     plt.ylabel('Absolute reward/Expected reward')
     plt.savefig('images/expectational_fairness/exp_fairness_quantile_' + str(x) + '.png')
     plt.close()
@@ -535,10 +540,6 @@ def plot_exp_fairness_overview(cycle_total_reward_dict, baker_initial_cycle_dict
                                baker_initial_reward_dict, cycle_list_of_active_bakers_dict):
     """avg, 5% quantile, 95% quantile and median in one plot"""
     x_data = list(range(0, 398))
-    #y1_data = compute_expectational_fairness_avg(cycle_total_reward_dict, baker_initial_cycle_dict,
-    #                                             baker_initial_reward_dict,
-    #                                             cycle_list_of_active_bakers_dict)
-    #plt.plot(x_data, y1_data, label='Avg')
     y2_data = compute_expectational_fairness_x_quantile(0.05, cycle_total_reward_dict, baker_initial_cycle_dict,
                                                         baker_initial_reward_dict, cycle_list_of_active_bakers_dict)
     plt.plot(x_data, y2_data, label='5% quantile')
@@ -551,6 +552,10 @@ def plot_exp_fairness_overview(cycle_total_reward_dict, baker_initial_cycle_dict
     plt.title('Expectational Fairness Overview')
     plt.legend()
     plt.xlabel('Cycles')
+    plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
+    plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
+    plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
+    plt.legend()
     plt.ylabel('Absolute reward/Expected reward')
     plt.savefig('images/expectational_fairness/exp_fairness_overview_without_avg.png')
     plt.close()
@@ -803,6 +808,10 @@ def plot_nakamoto_index(start, end):
     y_data = compute_nakamoto_index(start, end, False)
     plt.plot(x_data, y_data)
     plt.xlabel('Cycle')
+    plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
+    plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
+    plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
+    plt.legend()
     plt.ylabel('Percentage of bakers to reach > 50%')
     plt.title('Nakamoto Index for each cycle from ' + str(start) + ' to ' + str(end))
     plt.savefig('images/Nakamoto_index' + str(start) + '_' + str(end) + '.png')
@@ -829,6 +838,10 @@ def plot_nakamoto_index_num_bakers(start, end):
     y_data = compute_nakamoto_index(start, end, False)
     plt.plot(x_data, y_data, '.')
     plt.xlabel('Number of Bakers (Cycle)')
+    plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
+    plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
+    plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
+    plt.legend()
     plt.ylabel('Percentage of bakers to reach > 50%')
     plt.title('Nakamoto Index for each cycle from ' + str(start) + ' to ' + str(end))
     plt.savefig('images/Nakamoto_index_num_bakers' + str(start) + '_' + str(end) + '.png')
@@ -912,6 +925,10 @@ def plot_distance_to_mean(start, end):
             plt.plot(c, baker, '.')  # for every baker in the cycle make a '.'
     plt.legend()
     plt.xlabel('Cycle')
+    plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
+    plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
+    plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
+    plt.legend()
     plt.ylabel('Relative distance of total_reward to mean')
     plt.title('Relative Distance to Mean per Cycle from ' + str(start) + ' to ' + str(end))
     plt.savefig('images/income_distance_' + str(start) + '_' + str(end) + '.png')
@@ -937,6 +954,10 @@ def plot_median_and_avg_reward(start, end):
     plt.plot(x_data, y2_data, label='Mean')
     plt.legend()
     plt.xlabel('Cycle')
+    plt.axvline(61, 0, 1, label='2019', color='grey', linewidth=0.3, linestyle='--')
+    plt.axvline(185, 0, 1, label='2020', color='blue', linewidth=0.3, linestyle='--')
+    plt.axvline(313, 0, 1, label='2021', color='green', linewidth=0.3, linestyle='--')
+    plt.legend()
     plt.ylabel('Rewards')
     plt.title('Mean and Avg rewards per Cycle from ' + str(start) + ' to ' + str(end))
     plt.savefig('images/mean_avg_rewards_' + str(start) + '_' + str(end) + '.png')
@@ -996,7 +1017,6 @@ if __name__ == '__main__':
     plot_histogram_5cycles_baker_rewards()
 
     # Compute median and avg reward for all cycles in a plot
-    plot_median_and_avg_reward(0, 6)
     plot_median_and_avg_reward(0, 398)
 
     # Plot gini indexes of baker rewards for each era
@@ -1007,6 +1027,7 @@ if __name__ == '__main__':
         plot_gini_indexes_rewards_all_bakers_per_cycle(start, end)
 
     # Baker rewards per era
+    # commented out as it takes long
     # cycle_names = ['Athens', 'Babylon', 'Carthage', 'Delphi', 'Edo']
     # for start, end, cycle_name in zip(start_cycles, end_cycles, cycle_names):
     #     plot_era_baker_reward(start, end, cycle_name)
@@ -1036,8 +1057,6 @@ if __name__ == '__main__':
                                                                   baker_initial_reward_dict,
                                                                   cycle_list_of_active_bakers_dict)
 
-
-    #print('HIGHEST 5 BAKERS')
     highest5_bakers_flattened = [item for sublist in highest5_bakers for item in sublist]
     highest5_flatten_no_duplicates = list(dict.fromkeys(highest5_bakers_flattened))
     print(highest5_flatten_no_duplicates)
@@ -1067,7 +1086,6 @@ if __name__ == '__main__':
                                                               cycle_list_of_active_bakers_dict)  # average over all bakers in each cycle
 
     # expectational fairness at individual cycles for all bakers, look at cycles in each era
-    # TODO: note if there are differences among the eras, compare several cycles in different eras
     era_cycles = [50, 130, 200, 250, 300, 340, 370, 395]
     for cycle in era_cycles:
         plot_expectational_fairness_onecycle(cycle, cycle_total_reward_dict, baker_initial_cycle_dict,
@@ -1075,22 +1093,18 @@ if __name__ == '__main__':
 
     # Robust fairness (we fix delta and a specific cycle and find epsilon) Note: for robust fairness cycles higher
     # than 6 we have very high EPS values and therefore plots look wrong at first sight
-    #plot_robust_fairness_old(6)
-    #plot_robust_fairness_old(50)
-    plot_robust_fairness(50)
     plot_robust_fairness(6)
     # plot a robust fairness for every era (one cycle in each era)
     for c in era_cycles:
         plot_robust_fairness(c)
 
     # Area under curve robust fairness
-    # TODO: comment this out as it takes long
+    # commented out as it takes long
     # plot_robust_fairness_aoc(0, 5)  # works for every cycle (for initial value we take the value in prev. cycle)
     # plot_robust_fairness_aoc(0, 398)
 
     # Compute mean reward plot, i.e. cycles on x axis, percentage of total reward on y axis, plot a line with the mean
     # reward over all bakers in red and the relative rewards for all bakers per cycle on the y axis
-    # TODO: eventually or detect the bakers that have a too big distance
     plot_distance_to_mean(0, 8)
     plot_distance_to_mean(0, 398)
 
@@ -1101,7 +1115,6 @@ if __name__ == '__main__':
     plot_nakamoto_index_onethird(0, 398)
 
     # Nakamoto index with num bakers in network on x axis
-    plot_nakamoto_index_num_bakers(0, 8)
     plot_nakamoto_index_num_bakers(0, 398)
 
     # Close connection
